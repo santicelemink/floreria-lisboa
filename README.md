@@ -3,12 +3,41 @@
 Prototipo de e-commerce para Florería Lisboa, atelier floral de Buenos Aires.
 React + Vite + TypeScript + Tailwind + shadcn/ui (Radix), estado con Zustand.
 
+## Correrlo en tu computadora
+
+Requisitos: Node.js 20 o superior (recomendado 22) y npm.
+
 ```bash
+git clone https://github.com/santicelemink/floreria-lisboa.git
 cd floreria-lisboa
 npm install
-npm run dev      # http://localhost:5173
-npm run build    # genera dist/
+npm run dev        # abre http://localhost:5173
 ```
+
+Otros comandos:
+
+```bash
+npm run build      # chequeo de tipos + build de producción en dist/
+npm run preview    # sirve dist/ en http://localhost:4173 para revisarlo
+```
+
+## Publicarlo en Netlify
+
+El repositorio ya trae `netlify.toml` con todo configurado, así que no hace falta tocar nada:
+
+1. En [app.netlify.com](https://app.netlify.com), elegí **Add new site → Import an existing project**.
+2. Conectá GitHub y elegí el repositorio `floreria-lisboa`.
+3. Dejá los campos como los completa Netlify (vienen de `netlify.toml`):
+   - Base directory: vacío
+   - Build command: `npm run build`
+   - Publish directory: `dist`
+4. **Deploy**. Cada push a `main` vuelve a publicar el sitio.
+
+`netlify.toml` también fija Node 22 y redirige todas las rutas a `index.html`,
+para que `/crear`, `/producto/alfama` o `/checkout` funcionen al recargar o al abrirlas desde un link.
+
+Para otro hosting estático (Vercel, Cloudflare Pages): build `npm run build`, salida `dist`
+y una regla de reescritura de `/*` a `/index.html`.
 
 ## Rutas
 
@@ -56,4 +85,4 @@ la UI no cambia.
 - Toda la lógica de horarios usa `America/Argentina/Buenos_Aires`.
 - Se persisten en `localStorage` (con try/catch) el pedido, el diseño guardado y el modo presentación.
 - Para cumplir contraste AA, el texto secundario usa `gris-texto` (#6B6264) y el texto chico en acento usa `malva-oscuro`; el gris #7D7476 y el malva #A8707C quedan para íconos, bordes, placeholders y títulos grandes.
-- Deploy en Netlify como sitio aparte: “Base directory” = `floreria-lisboa` (ver `netlify.toml`).
+- El número de WhatsApp es de ejemplo: se cambia en `src/data/catalog.ts` (`WHATSAPP_NUMBER`).

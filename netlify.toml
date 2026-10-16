@@ -1,9 +1,13 @@
-# Florería Lisboa: deploy como sitio independiente.
-# En Netlify, configurá "Base directory" = floreria-lisboa.
+# Florería Lisboa: el proyecto está en la raíz del repositorio,
+# así que Netlify no necesita "Base directory".
 [build]
   command = "npm run build"
   publish = "dist"
 
+[build.environment]
+  NODE_VERSION = "22"
+
+# SPA: todas las rutas (/crear, /producto/alfama, ...) las resuelve React Router.
 [[redirects]]
   from = "/*"
   to = "/index.html"
