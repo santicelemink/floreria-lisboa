@@ -1,10 +1,11 @@
 import { memo, useId, useMemo } from "react";
 import type { FlowerId, PaletteId, RibbonId, SizeId, WrapId } from "@/types";
-import { PALETTE_BY_ID, RIBBON_BY_ID, SIZE_BY_ID, WRAP_BY_ID } from "@/data/catalog";
+import { PALETTE_BY_ID, RIBBON_BY_ID, WRAP_BY_ID } from "@/data/catalog";
+import { CX, H, W, hash, layoutScene, type FoliagePlacement, type PlacedFlower } from "@/lib/bouquetLayout";
 import { describeBouquet } from "@/lib/bouquet";
 import { shade, tint } from "@/lib/color";
 import { cn } from "@/lib/utils";
-import { FLOWER_DRAW, FLOWER_SCALE } from "./flowers";
+import { FLOWER_DRAW } from "./flowers";
 
 export interface BouquetPreviewProps {
   palette: PaletteId;
@@ -19,61 +20,10 @@ export interface BouquetPreviewProps {
   decorative?: boolean;
 }
 
-const W = 400;
-const H = 480;
-const CX = W / 2;
-const GOLDEN = 2.39996;
 const LEAF_A = "#A9BFA0";
 const LEAF_B = "#93AC8C";
 const STEM = "#8DA684";
-
-/** Pseudoaleatorio determinístico: el mismo ramo siempre se dibuja igual. */
-function hash(i: number, salt = 0) {
-  const x = Math.sin(i * 12.9898 + salt * 78.233) * 43758.5453;
-  return x - Math.floor(x);
-}
-
-const RX: Record<SizeId, number> = { petite: 96, clasico: 116, abundante: 138 };
 const r2 = (v: number) => Math.round(v * 10) / 10;
-
-interface PlacedFlower {
-  key: number;
-  kind: FlowerId;
-  x: number;
-  y: number;
-  r: number;
-  rotate: number;
-  color: string;
-  seed: number;
-}
-
-function layoutFlowers(flowers: FlowerId[], colors: string[], size: SizeId, cy: number, squash: number) {
-  const count = SIZE_BY_ID[size].stems;
-  const rx = RX[size];
-  const ry = rx * 0.74 * squash;
-  const flowerR = Math.sqrt((Math.PI * rx * ry) / count / Math.PI) * 1.24;
-  const placed: PlacedFlower[] = [];
-  for (let i = 0; i < count; i++) {
-    const t = Math.sqrt((i + 0.5) / count);
-    const angle = i * GOLDEN;
-    const kind = flowers[i % flowers.length];
-    const isTulip = kind === "tulipan";
-    const scale = FLOWER_SCALE[kind] * (1 - 0.13 * t) * (0.92 + hash(i, 1) * 0.16);
-    placed.push({
-      key: i,
-      kind,
-      x: CX + Math.cos(angle) * t * rx * 0.8,
-      y: cy + Math.sin(angle) * t * ry * 0.8,
-      r: flowerR * scale,
-      rotate: isTulip ? (hash(i, 2) - 0.5) * 36 : hash(i, 2) * 360,
-      color: colors[(i + Math.floor(i / 3)) % 3],
-      seed: hash(i, 3),
-    });
-  }
-  // Ordenadas por Y: las de abajo quedan delante y se superponen con naturalidad.
-  placed.sort((a, b) => a.y - b.y);
-  return { placed, rx, ry, flowerR };
-}
 
 function Eucalyptus({ x, y, angle, length, seed }: { x: number; y: number; angle: number; length: number; seed: number }) {
   const bend = (seed - 0.5) * length * 0.5;
@@ -103,26 +53,12 @@ function Eucalyptus({ x, y, angle, length, seed }: { x: number; y: number; angle
   );
 }
 
-function Foliage({ cy, rx, ry, count }: { cy: number; rx: number; ry: number; count: number }) {
+function Foliage({ items }: { items: FoliagePlacement[] }) {
   return (
     <g>
-      {Array.from({ length: count }, (_, i) => {
-        // Abanico de ramas desde el centro hacia afuera, sobre todo arriba y a los costados.
-        const spread = 250;
-        const angle = -spread / 2 + (spread / (count - 1)) * i + (hash(i, 5) - 0.5) * 14;
-        const radA = ((angle - 90) * Math.PI) / 180;
-        const dist = 0.55;
-        return (
-          <Eucalyptus
-            key={i}
-            x={CX + Math.cos(radA) * rx * dist}
-            y={cy + Math.sin(radA) * ry * dist}
-            angle={angle}
-            length={rx * (0.52 + hash(i, 6) * 0.2)}
-            seed={hash(i, 7)}
-          />
-        );
-      })}
+      {items.map((f) => (
+        <Eucalyptus key={f.key} x={f.x} y={f.y} angle={f.angle} length={f.length} seed={f.seed} />
+      ))}
     </g>
   );
 }
@@ -154,7 +90,7 @@ function Filler({ cy, rx, ry, count }: { cy: number; rx: number; ry: number; cou
   );
 }
 
-function Flowers({ placed }: { placed: PlacedFlower[] }) {
+function Flowers({ placed, colors }: { placed: PlacedFlower[]; colors: readonly string[] }) {
   return (
     <g>
       {placed.map((f) => {
@@ -162,8 +98,8 @@ function Flowers({ placed }: { placed: PlacedFlower[] }) {
         return (
           <g key={f.key} transform={`translate(${r2(f.x)} ${r2(f.y)})`}>
             <circle cy={r2(f.r * 0.12)} r={r2(f.r * 0.96)} fill="#2F2A2C" fillOpacity={0.06} />
-            <g transform={`rotate(${r2(f.rotate)})`}>
-              <Draw r={f.r} color={f.color} seed={f.seed} />
+            <g transform={`rotate(${r2(f.kind === "tulipan" ? (f.spin - 0.5) * 36 : f.spin * 360)})`}>
+              <Draw r={f.r} color={colors[f.colorIndex]} seed={f.seed} />
             </g>
           </g>
         );
@@ -309,17 +245,8 @@ function BouquetPreviewBase({ palette, flowers, size, wrap, ribbon, className, l
   const ribbonColor = RIBBON_BY_ID[ribbon].color;
   const isBox = wrapInfo.kind === "box";
 
-  const scene = useMemo(() => {
-    const cy = isBox ? 196 : 176;
-    const { placed, rx, ry } = layoutFlowers(flowers, colors, size, cy, isBox ? 0.78 : 1);
-    const neckY = Math.round(cy + ry + 58 + rx * 0.24);
-    const foliageCount = size === "petite" ? 6 : size === "clasico" ? 8 : 10;
-    return { cy, placed, rx, ry, neckY, foliageCount };
-  }, [flowers, colors, size, isBox]);
-
-  const { cy, placed, rx, ry, neckY, foliageCount } = scene;
-  const boxHalf = rx * 1.04;
-  const boxTop = cy + ry * 0.42;
+  const scene = useMemo(() => layoutScene({ flowers, size, wrap }), [flowers, size, wrap]);
+  const { cy, placed, rx, ry, neckY, foliage, boxHalf, boxTop } = scene;
   const description = label ?? describeBouquet({ palette, flowers, size, wrap });
   const renderKey = `${palette}-${flowers.join(".")}-${size}-${wrap}-${ribbon}`;
 
@@ -344,10 +271,10 @@ function BouquetPreviewBase({ palette, flowers, size, wrap, ribbon, className, l
         ) : (
           <PaperBack cy={cy} rx={rx} ry={ry} neckY={neckY} color={wrapInfo.color} />
         )}
-        <Foliage cy={cy} rx={rx} ry={ry} count={foliageCount} />
-        <Filler cy={cy} rx={rx} ry={ry} count={foliageCount + 2} />
+        <Foliage items={foliage} />
+        <Filler cy={cy} rx={rx} ry={ry} count={foliage.length + 2} />
         {!isBox && <Stems neckY={neckY} />}
-        <Flowers placed={placed} />
+        <Flowers placed={placed} colors={colors} />
         {isBox ? (
           <HatBox part="front" yTop={boxTop} half={boxHalf} color={wrapInfo.color} ribbon={ribbonColor} gradientId={gradientId} />
         ) : (

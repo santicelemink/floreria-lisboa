@@ -21,7 +21,7 @@ import {
 import { Chip, OptionCard } from "@/components/ui/choice";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/input";
-import { BouquetPreview } from "@/components/bouquet/BouquetPreview";
+import { BouquetComposer } from "@/components/bouquet/BouquetComposer";
 import { FlowerIcon } from "@/components/bouquet/flowers";
 import { useConfigurator } from "@/store/configurator";
 import { calculatePrice } from "@/lib/pricing";
@@ -181,7 +181,7 @@ export function StepSize() {
             className="flex items-center gap-4 py-3 pr-12 sm:gap-5"
           >
             <span className="h-[72px] w-[60px] shrink-0">
-              <BouquetPreview {...config} size={s.id} decorative />
+              <BouquetComposer {...config} size={s.id} decorative />
             </span>
             <span className="min-w-0 flex-1">
               <span className="flex flex-wrap items-center gap-2">

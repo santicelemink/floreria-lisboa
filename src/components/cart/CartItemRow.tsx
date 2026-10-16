@@ -1,12 +1,29 @@
 import type { CartItem } from "@/types";
-import { BouquetPreview, paletteBackground } from "@/components/bouquet/BouquetPreview";
+import { paletteBackground } from "@/components/bouquet/BouquetPreview";
+import { BouquetComposer } from "@/components/bouquet/BouquetComposer";
+import { BouquetPhoto } from "@/components/bouquet/BouquetPhoto";
+import { PHOTOS } from "@/data/photos";
+import { PRODUCT_BY_SLUG } from "@/data/products";
 import { describeBouquet, summaryLines } from "@/lib/bouquet";
 import { formatPrice } from "@/lib/format";
 
+/** ¿El ramo se ve igual que el diseño de la casa? Entonces usamos su foto. */
+function matchesProductPhoto(item: CartItem) {
+  const product = item.productSlug ? PRODUCT_BY_SLUG[item.productSlug] : undefined;
+  if (!product || !PHOTOS[product.slug]) return false;
+  const a = item.config;
+  const b = product.config;
+  return a.palette === b.palette && a.wrap === b.wrap && a.ribbon === b.ribbon && a.flowers.join() === b.flowers.join();
+}
+
 export function CartThumb({ item, className = "h-[84px] w-[70px]" }: { item: CartItem; className?: string }) {
+  const frame = `${className} shrink-0 overflow-hidden rounded-[14px] border border-linea`;
+  if (matchesProductPhoto(item)) {
+    return <BouquetPhoto slug={item.productSlug!} fallback={item.config} alt={describeBouquet(item.config)} className={frame} />;
+  }
   return (
-    <div className={`${className} shrink-0 overflow-hidden rounded-[14px] border border-linea`} style={{ background: paletteBackground(item.config.palette) }}>
-      <BouquetPreview {...item.config} label={describeBouquet(item.config)} />
+    <div className={frame} style={{ background: paletteBackground(item.config.palette) }}>
+      <BouquetComposer {...item.config} label={describeBouquet(item.config)} />
     </div>
   );
 }

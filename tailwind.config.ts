@@ -72,6 +72,7 @@ export default {
           to: { opacity: "1", transform: "translateY(0)" },
         },
         "fade-in": { from: { opacity: "0" }, to: { opacity: "1" } },
+        "compose-in": { from: { opacity: "0" }, to: { opacity: "1" } },
         "live-dot": {
           "0%": { boxShadow: "0 0 0 0 rgb(122 168 122 / 0.55)" },
           "70%": { boxShadow: "0 0 0 7px rgb(122 168 122 / 0)" },

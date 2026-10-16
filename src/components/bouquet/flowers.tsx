@@ -205,15 +205,7 @@ export const FLOWER_DRAW: Record<FlowerId, (props: FlowerDrawProps) => ReactElem
   hortensia: Hydrangea,
 };
 
-/** Escala relativa de cada variedad dentro del ramo. */
-export const FLOWER_SCALE: Record<FlowerId, number> = {
-  rosa: 1,
-  peonia: 1.14,
-  tulipan: 0.92,
-  ranunculo: 0.96,
-  lisianthus: 0.94,
-  hortensia: 1.12,
-};
+export { FLOWER_SCALE } from "./flowerScale";
 
 /** Ícono de una flor para las tarjetas de opción, pintado con la paleta actual. */
 export function FlowerIcon({ flower, colors, className }: { flower: FlowerId; colors: [string, string, string]; className?: string }) {

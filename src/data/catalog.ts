@@ -216,6 +216,32 @@ export const HARMONY: Record<PaletteId, { wraps: WrapId[]; ribbons: RibbonId[] }
   jardin: { wraps: ["caja", "seda-marfil", "lino-rubor"], ribbons: ["saten-rubor", "lavanda", "dorado"] },
 };
 
+/* ---------- Compositor fotográfico ---------- */
+
+/** Colores en los que se fotografía cada variedad (assets del compositor). */
+export const COMPOSER_COLORS = [
+  "blanco",
+  "crema",
+  "rubor-claro",
+  "rubor",
+  "lavanda-claro",
+  "lavanda",
+  "durazno-claro",
+  "durazno",
+  "manteca",
+] as const;
+export type ComposerColor = (typeof COMPOSER_COLORS)[number];
+
+/** Cómo se traduce cada paleta a tres colores fotográficos (mismo orden que `Palette.colors`). */
+export const PALETTE_COMPOSER_COLORS: Record<PaletteId, [ComposerColor, ComposerColor, ComposerColor]> = {
+  rubor: ["rubor-claro", "rubor", "blanco"],
+  lavanda: ["lavanda-claro", "lavanda", "blanco"],
+  durazno: ["durazno-claro", "durazno", "crema"],
+  manteca: ["manteca", "crema", "blanco"],
+  marfil: ["blanco", "crema", "durazno-claro"],
+  jardin: ["rubor", "lavanda", "manteca"],
+};
+
 const byId = <T extends { id: string }>(list: T[]) =>
   Object.fromEntries(list.map((item) => [item.id, item])) as Record<T["id"], T>;
 

@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
-import { BouquetPreview, type BouquetPreviewProps } from "@/components/bouquet/BouquetPreview";
+import { BouquetPhoto } from "@/components/bouquet/BouquetPhoto";
+import type { BouquetPreviewProps } from "@/components/bouquet/BouquetPreview";
 import { PitchNote } from "@/components/pitch/PitchNote";
 import { Stars } from "@/components/common/Section";
 import { useSectionNav } from "@/hooks/useSectionNav";
@@ -50,23 +51,12 @@ export function Hero() {
         </div>
 
         <div className="relative mx-auto w-full max-w-[460px] lg:max-w-[500px]">
-          <div
-            className="relative aspect-[4/5] w-full overflow-hidden border border-papel/70 shadow-lift"
-            style={{
-              borderRadius: "220px 220px 24px 24px",
-              background: "linear-gradient(180deg, rgb(var(--rubor)) 0%, rgb(var(--lavanda)) 100%)",
-            }}
-          >
-            <div className="absolute inset-x-[6%] bottom-[2%] top-[8%] motion-safe:animate-float">
-              <BouquetPreview
-                {...HERO_BOUQUET}
-                label="Ramo abundante de peonías, rosas y ranúnculos en paleta jardín, con papel de lino rubor"
-              />
-            </div>
-          </div>
-          <p className="absolute -bottom-4 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border border-linea bg-papel px-4 py-2 text-[13px] text-tinta shadow-soft">
-            Vista previa real del configurador
-          </p>
+          <BouquetPhoto
+            slug="hero"
+            priority
+            fallback={HERO_BOUQUET}
+            className="aspect-[4/5] w-full border border-papel/70 shadow-lift [border-radius:220px_220px_24px_24px]"
+          />
         </div>
       </div>
     </section>

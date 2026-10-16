@@ -6,12 +6,13 @@ import { Button } from "@/components/ui/button";
 import { SectionHeading } from "@/components/common/Section";
 import { PitchNotes } from "@/components/pitch/PitchNote";
 import { decodeConfig } from "@/lib/bouquet";
+import { assetsForStep, preloadAssets } from "@/lib/composerAssets";
 import { formatPrice } from "@/lib/format";
 import { calculatePrice } from "@/lib/pricing";
 import { prefersReducedMotion, scrollToId, stripSearchParam } from "@/lib/utils";
 import { STEP_COUNT, useConfigurator } from "@/store/configurator";
 import { useUI } from "@/store/ui";
-import { AnimatedPrice, PreviewDetails, PreviewStage } from "./PreviewPanel";
+import { AnimatedPrice, PreviewDetails, PreviewDisclaimer, PreviewStage } from "./PreviewPanel";
 import { STEP_BODIES } from "./StepBodies";
 import { StepProgress } from "./StepProgress";
 import { STEPS } from "./steps";
@@ -51,6 +52,12 @@ export function Configurator({ variant = "section" }: { variant?: "section" | "p
   const isLast = step === STEP_COUNT - 1;
 
   useSharedDesign(variant === "section");
+
+  // Precarga de las imágenes de las opciones visibles en este paso: elegir cualquiera no parpadea.
+  useEffect(() => {
+    const id = window.setTimeout(() => preloadAssets(assetsForStep(step, config)), 120);
+    return () => window.clearTimeout(id);
+  }, [step, config]);
 
   // Al cambiar de paso, si el inicio del panel quedó fuera de vista, lo traemos.
   useEffect(() => {
@@ -101,12 +108,13 @@ export function Configurator({ variant = "section" }: { variant?: "section" | "p
         />
         <PitchNotes ns={[3, 4]} className="mx-auto mt-10 max-w-[1040px]" />
 
-        <div className="mt-10 grid items-start gap-5 [grid-template-areas:'stage'_'steps'_'details'] sm:mt-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.12fr)] lg:gap-10 lg:[grid-template-areas:'aside_steps']">
+        <div className="mt-10 grid items-start gap-5 [grid-template-areas:'stage'_'caption'_'steps'_'details'] sm:mt-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.12fr)] lg:gap-10 lg:[grid-template-areas:'aside_steps']">
           {/* Columna de vista previa: sticky en desktop; en mobile el escenario queda fijo arriba */}
           <div className="contents lg:sticky lg:top-24 lg:block lg:rounded-panel lg:border lg:border-linea lg:bg-papel lg:p-6 lg:[grid-area:aside] xl:p-7">
             <div className="sticky top-[var(--header-h)] z-20 -mx-4 bg-marfil px-4 pb-2 pt-2 [grid-area:stage] sm:-mx-6 sm:px-6 lg:static lg:m-0 lg:bg-transparent lg:p-0">
               <PreviewStage className="mx-auto h-[clamp(200px,32svh,280px)] w-full lg:aspect-square lg:h-auto lg:w-[min(100%,max(340px,calc(100svh-350px)))]" />
             </div>
+            <PreviewDisclaimer className="-mt-1 px-1 [grid-area:caption] lg:mx-auto lg:mt-3 lg:w-[min(100%,max(340px,calc(100svh-350px)))] lg:px-0" />
             <PreviewDetails className="rounded-panel border border-linea bg-papel p-5 [grid-area:details] lg:mt-6 lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0" />
           </div>
 

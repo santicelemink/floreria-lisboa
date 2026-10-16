@@ -20,6 +20,7 @@ import { NotFoundPage } from "@/pages/NotFoundPage";
 // Páginas fuera del recorrido principal: se cargan bajo demanda.
 const ProductPage = lazy(() => import("@/pages/ProductPage").then((m) => ({ default: m.ProductPage })));
 const CheckoutPage = lazy(() => import("@/pages/CheckoutPage").then((m) => ({ default: m.CheckoutPage })));
+const DevComposerPage = lazy(() => import("@/pages/DevComposerPage").then((m) => ({ default: m.DevComposerPage })));
 const OrderConfirmedPage = lazy(() =>
   import("@/pages/OrderConfirmedPage").then((m) => ({ default: m.OrderConfirmedPage })),
 );
@@ -96,6 +97,7 @@ export default function App() {
             <Route path="suscripcion" element={<SubscriptionPage />} />
             <Route path="checkout" element={<CheckoutPage />} />
             <Route path="pedido-confirmado" element={<OrderConfirmedPage />} />
+            <Route path="dev/composer" element={<DevComposerPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
         </Routes>

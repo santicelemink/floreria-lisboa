@@ -1,6 +1,7 @@
 import { Bookmark, BookmarkCheck, Link2, RotateCcw, Shuffle } from "lucide-react";
 import { toast } from "sonner";
-import { BouquetPreview, paletteBackground } from "@/components/bouquet/BouquetPreview";
+import { paletteBackground } from "@/components/bouquet/BouquetPreview";
+import { BouquetComposer } from "@/components/bouquet/BouquetComposer";
 import { PALETTE_BY_ID, RIBBON_BY_ID, SIZE_BY_ID, WRAP_BY_ID } from "@/data/catalog";
 import { useAnimatedNumber } from "@/hooks/useAnimatedNumber";
 import { configsEqual, describeBouquet, encodeConfig, flowersPhrase } from "@/lib/bouquet";
@@ -28,6 +29,13 @@ export function AnimatedPrice({ value, className }: { value: number; className?:
   );
 }
 
+export const PREVIEW_DISCLAIMER =
+  "Imagen ilustrativa. Respetamos paleta, flores y tamaño; alguna variedad puede cambiar según la estación.";
+
+export function PreviewDisclaimer({ className }: { className?: string }) {
+  return <p className={cn("text-[13px] leading-snug text-gris-texto", className)}>{PREVIEW_DISCLAIMER}</p>;
+}
+
 /** Escenario cuadrado con fondo radial de la paleta y el ramo en vivo. */
 export function PreviewStage({ className }: { className?: string }) {
   const config = useConfigurator((s) => s.config);
@@ -42,7 +50,7 @@ export function PreviewStage({ className }: { className?: string }) {
         <AnimatedPrice value={price} />
       </span>
       <div className="absolute inset-0 p-3 sm:p-6">
-        <BouquetPreview {...config} label={describeBouquet(config)} />
+        <BouquetComposer {...config} label={describeBouquet(config)} />
       </div>
     </div>
   );

@@ -5,15 +5,15 @@ import type { SizeId } from "@/types";
 import { OCCASION_BY_ID, SIZES } from "@/data/catalog";
 import { CARE_TIPS, SHIPPING_INFO } from "@/data/content";
 import { PRODUCTS, PRODUCT_BY_SLUG } from "@/data/products";
-import { BouquetPreview, paletteBackground } from "@/components/bouquet/BouquetPreview";
+import { BouquetPhoto } from "@/components/bouquet/BouquetPhoto";
 import { ProductCard } from "@/components/common/ProductCard";
 import { Button } from "@/components/ui/button";
 import { OptionCard } from "@/components/ui/choice";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { AnimatedPrice, LiveBadge } from "@/components/configurator/PreviewPanel";
+import { AnimatedPrice } from "@/components/configurator/PreviewPanel";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { useProductActions } from "@/hooks/useProductActions";
-import { describeBouquet, summaryLines } from "@/lib/bouquet";
+import { summaryLines } from "@/lib/bouquet";
 import { formatPrice } from "@/lib/format";
 import { calculatePrice } from "@/lib/pricing";
 import { NotFoundPage } from "./NotFoundPage";
@@ -51,14 +51,16 @@ export function ProductPage() {
         </Link>
         <div className="mt-6 grid gap-10 lg:grid-cols-[1.05fr_1fr] lg:gap-16">
           <div className="lg:sticky lg:top-24 lg:self-start">
-            <div className="relative aspect-[4/5] overflow-hidden rounded-panel border border-linea" style={{ background: paletteBackground(config.palette) }}>
-              <LiveBadge className="absolute left-4 top-4 z-10" />
+            <div className="relative">
+              <BouquetPhoto
+                slug={product.slug}
+                priority
+                fallback={product.config}
+                className="aspect-[4/5] rounded-panel border border-linea"
+              />
               {product.tag && (
-                <span className="absolute right-4 top-4 z-10 rounded-full bg-papel/90 px-3 py-1.5 text-[12px] text-tinta">{product.tag}</span>
+                <span className="absolute left-4 top-4 z-10 rounded-full bg-papel/90 px-3 py-1.5 text-[12px] text-tinta">{product.tag}</span>
               )}
-              <div className="absolute inset-0 p-[7%]">
-                <BouquetPreview {...config} label={describeBouquet(config)} />
-              </div>
             </div>
           </div>
 

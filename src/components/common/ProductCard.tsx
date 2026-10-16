@@ -1,8 +1,7 @@
 import { Link } from "react-router-dom";
 import type { Product } from "@/data/products";
-import { BouquetPreview, paletteBackground } from "@/components/bouquet/BouquetPreview";
+import { BouquetPhoto } from "@/components/bouquet/BouquetPhoto";
 import { Button } from "@/components/ui/button";
-import { describeBouquet } from "@/lib/bouquet";
 import { formatPrice } from "@/lib/format";
 import { calculatePrice } from "@/lib/pricing";
 
@@ -21,11 +20,12 @@ export function ProductCard({
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-card border border-linea bg-marfil transition-[transform,box-shadow] duration-300 ease-atelier hover:-translate-y-1 hover:shadow-lift">
       <Link to={`/producto/${product.slug}`} className="relative block overflow-hidden rounded-t-card" aria-label={`Ver ${product.name}`}>
-        <div className="aspect-[4/5] transition-transform duration-500 ease-atelier group-hover:scale-[1.04]" style={{ background: paletteBackground(product.config.palette) }}>
-          <div className="h-full w-full p-[6%]">
-            <BouquetPreview {...product.config} label={describeBouquet(product.config)} />
-          </div>
-        </div>
+        <BouquetPhoto
+          slug={product.slug}
+          fallback={product.config}
+          className="aspect-[4/5]"
+          imgClassName="transition-[opacity,transform] duration-500 ease-atelier group-hover:scale-[1.04]"
+        />
         {product.tag && (
           <span className="absolute left-3 top-3 rounded-full bg-papel/90 px-3 py-1 text-[12px] tracking-[0.02em] text-tinta backdrop-blur">
             {product.tag}
