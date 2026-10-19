@@ -1,62 +1,60 @@
-import type { BouquetConfig, FlowerId, RibbonId, WrapId } from "@/types";
-import {
-  COMPOSER_COLORS,
-  FLOWERS,
-  OCCASIONS,
-  PALETTES,
-  PALETTE_COMPOSER_COLORS,
-  RIBBONS,
-  WRAPS,
-  WRAP_BY_ID,
-  type ComposerColor,
-} from "@/data/catalog";
+import type { BouquetConfig, FlowerId } from "@/types";
+import { FLOWERS, WRAP_BY_ID } from "@/data/catalog";
 
-/* ---------- Rutas de los assets del compositor (carpeta /public/composer) ---------- */
+/* ---------- Assets del compositor (carpeta /public/composer): 14 imágenes ---------- */
 
-export const FOLIAGE_VARIANTS = [1, 2, 3, 4] as const;
+export const FOLIAGE_VARIANTS = [1, 2, 3] as const;
 
 export const composerPaths = {
-  flower: (flower: FlowerId, color: ComposerColor) => `/composer/flores/${flower}/${color}.webp`,
+  /** Una flor por variedad, fotografiada en blanco: el color lo pone el sitio. */
+  flower: (flower: FlowerId) => `/composer/flores/${flower}.webp`,
   foliage: (n: number) => `/composer/follaje/eucalipto-${n}.webp`,
-  wrapBack: (wrap: WrapId) => `/composer/envoltorios/${wrap}-atras.webp`,
-  wrapFront: (wrap: WrapId) => `/composer/envoltorios/${wrap}-adelante.webp`,
+  /** Papel blanco o marfil: se tiñe con el color de cada envoltorio. */
+  paperBack: () => `/composer/envoltorios/papel-atras.webp`,
+  paperFront: () => `/composer/envoltorios/papel-adelante.webp`,
+  /** Tallos atados que asoman debajo del papel (sin teñir). */
+  stems: () => `/composer/envoltorios/tallos.webp`,
   box: () => `/composer/caja/caja-sombrerera.webp`,
-  ribbon: (ribbon: RibbonId) => `/composer/cintas/${ribbon}.webp`,
+  /** Moño blanco: se tiñe con el color de cada cinta. */
+  ribbon: () => `/composer/cintas/mono.webp`,
 };
 
-type VisualConfig = Pick<BouquetConfig, "palette" | "flowers" | "wrap" | "ribbon">;
+type VisualConfig = Pick<BouquetConfig, "flowers" | "wrap">;
 
-/** Todas las imágenes que hacen falta para componer un ramo. */
-export function assetsForConfig({ palette, flowers, wrap, ribbon }: VisualConfig): string[] {
-  const colors = PALETTE_COMPOSER_COLORS[palette];
+/** Imágenes que hacen falta para componer un ramo. */
+export function assetsForConfig({ flowers, wrap }: VisualConfig): string[] {
   const urls = new Set<string>();
-  flowers.forEach((f) => colors.forEach((c) => urls.add(composerPaths.flower(f, c))));
+  flowers.forEach((f) => urls.add(composerPaths.flower(f)));
   FOLIAGE_VARIANTS.forEach((n) => urls.add(composerPaths.foliage(n)));
   if (WRAP_BY_ID[wrap].kind === "box") {
     urls.add(composerPaths.box());
   } else {
-    urls.add(composerPaths.wrapBack(wrap));
-    urls.add(composerPaths.wrapFront(wrap));
+    urls.add(composerPaths.paperBack());
+    urls.add(composerPaths.paperFront());
+    urls.add(composerPaths.stems());
   }
-  urls.add(composerPaths.ribbon(ribbon));
+  urls.add(composerPaths.ribbon());
   return [...urls];
 }
 
-/** Lista completa de assets esperados, para la página de revisión /dev/composer. */
+/** Las 14 imágenes del compositor, con su descripción, para /dev/composer y la precarga. */
 export function allComposerAssets() {
   return {
-    flowers: FLOWERS.map((f) => ({
-      flower: f,
-      items: COMPOSER_COLORS.map((c) => ({ color: c, url: composerPaths.flower(f.id, c) })),
-    })),
+    flowers: FLOWERS.map((f) => ({ flower: f, url: composerPaths.flower(f.id) })),
     foliage: FOLIAGE_VARIANTS.map((n) => composerPaths.foliage(n)),
-    wraps: WRAPS.filter((w) => w.kind === "paper").flatMap((w) => [
-      { label: `${w.label} (atrás)`, url: composerPaths.wrapBack(w.id) },
-      { label: `${w.label} (adelante)`, url: composerPaths.wrapFront(w.id) },
-    ]),
+    wraps: [
+      { label: "papel-atras.webp", url: composerPaths.paperBack() },
+      { label: "papel-adelante.webp", url: composerPaths.paperFront() },
+      { label: "tallos.webp", url: composerPaths.stems() },
+    ],
     box: composerPaths.box(),
-    ribbons: RIBBONS.map((r) => ({ label: r.label, url: composerPaths.ribbon(r.id) })),
+    ribbon: composerPaths.ribbon(),
   };
+}
+
+export function allComposerUrls() {
+  const a = allComposerAssets();
+  return [...a.flowers.map((f) => f.url), ...a.foliage, ...a.wraps.map((w) => w.url), a.box, a.ribbon];
 }
 
 /* ---------- Carga con caché: cada imagen se pide una sola vez ---------- */
@@ -105,33 +103,4 @@ export async function loadAll(urls: string[]): Promise<AssetStatus> {
 
 export function preloadAssets(urls: Iterable<string>) {
   for (const url of urls) void loadAsset(url);
-}
-
-/**
- * Imágenes de las opciones que se ven en el paso actual del configurador,
- * para que al elegir cualquiera no haya parpadeos.
- */
-export function assetsForStep(step: number, config: BouquetConfig): string[] {
-  const urls = new Set<string>(assetsForConfig(config));
-  const add = (c: VisualConfig) => assetsForConfig(c).forEach((u) => urls.add(u));
-  switch (step) {
-    case 0:
-      OCCASIONS.forEach((o) => add({ ...config, palette: o.palette }));
-      break;
-    case 1:
-      PALETTES.forEach((p) => add({ ...config, palette: p.id }));
-      break;
-    case 2: {
-      const colors = PALETTE_COMPOSER_COLORS[config.palette];
-      FLOWERS.forEach((f) => colors.forEach((c) => urls.add(composerPaths.flower(f.id, c))));
-      break;
-    }
-    case 4:
-      WRAPS.forEach((w) => add({ ...config, wrap: w.id }));
-      RIBBONS.forEach((r) => urls.add(composerPaths.ribbon(r.id)));
-      break;
-    default:
-      break;
-  }
-  return [...urls];
 }

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { SectionHeading } from "@/components/common/Section";
 import { PitchNotes } from "@/components/pitch/PitchNote";
 import { decodeConfig } from "@/lib/bouquet";
-import { assetsForStep, preloadAssets } from "@/lib/composerAssets";
+import { allComposerUrls, preloadAssets } from "@/lib/composerAssets";
 import { formatPrice } from "@/lib/format";
 import { calculatePrice } from "@/lib/pricing";
 import { prefersReducedMotion, scrollToId, stripSearchParam } from "@/lib/utils";
@@ -53,11 +53,12 @@ export function Configurator({ variant = "section" }: { variant?: "section" | "p
 
   useSharedDesign(variant === "section");
 
-  // Precarga de las imágenes de las opciones visibles en este paso: elegir cualquiera no parpadea.
+  // Precarga de las 14 imágenes del compositor: con ellas se arma cualquier opción de cualquier paso,
+  // así que al elegir no hay parpadeos.
   useEffect(() => {
-    const id = window.setTimeout(() => preloadAssets(assetsForStep(step, config)), 120);
+    const id = window.setTimeout(() => preloadAssets(allComposerUrls()), 120);
     return () => window.clearTimeout(id);
-  }, [step, config]);
+  }, []);
 
   // Al cambiar de paso, si el inicio del panel quedó fuera de vista, lo traemos.
   useEffect(() => {

@@ -1,9 +1,10 @@
 import { memo, useEffect, useId, useMemo, useRef, useState } from "react";
 import type { BouquetConfig } from "@/types";
-import { PALETTE_COMPOSER_COLORS } from "@/data/catalog";
+import { COMPOSER_COLOR_HEX, PALETTE_COMPOSER_COLORS, RIBBON_BY_ID, WRAP_BY_ID } from "@/data/catalog";
 import { describeBouquet } from "@/lib/bouquet";
 import { CX, H, W, layoutScene, type BouquetScene } from "@/lib/bouquetLayout";
 import { assetsForConfig, composerPaths, FOLIAGE_VARIANTS, knownStatus, loadAll } from "@/lib/composerAssets";
+import { tintMatrix } from "@/lib/tint";
 import { cn } from "@/lib/utils";
 import { BouquetPreview } from "./BouquetPreview";
 
@@ -11,11 +12,12 @@ import { BouquetPreview } from "./BouquetPreview";
  * Vista previa por capas fotográficas. Usa la misma geometría que el SVG (phyllotaxis con
  * ángulo áureo, orden por Y, escala según tamaño) pero ubica imágenes con fondo transparente.
  *
- * Contrato de los assets (ver README):
+ * Son 14 imágenes (ver README): las flores, el papel y el moño están fotografiados en blanco
+ * y se tiñen acá con el color de la paleta, del envoltorio y de la cinta.
  * - Flores: cuadradas, la flor centrada ocupando ~90% del ancho.
  * - Follaje: vertical 1:2, la base de la rama en el centro del borde inferior.
- * - Envoltorios y caja: lienzo completo 5:6 alineado al ramo Clásico; se escalan según el tamaño.
- * - Cintas: cuadradas, el nudo del moño en el centro.
+ * - Papel, tallos y caja: lienzo completo 5:6 alineado al ramo Clásico; se escalan según el tamaño.
+ * - Moño: cuadrado, el nudo en el centro.
  * Si falta cualquier imagen de la composición, se muestra el ramo en SVG.
  */
 
@@ -34,7 +36,7 @@ const FADE_MS = 250;
 const r2 = (v: number) => Math.round(v * 10) / 10;
 
 /** Lienzo completo escalado alrededor de un ancla: el cuello del ramo o el borde de la caja. */
-function canvasLayer(href: string, scale: number, anchorY: number, refAnchorY: number) {
+function canvasLayer(href: string, scale: number, anchorY: number, refAnchorY: number, filter?: string) {
   return (
     <image
       href={href}
@@ -42,12 +44,16 @@ function canvasLayer(href: string, scale: number, anchorY: number, refAnchorY: n
       y={r2(anchorY - refAnchorY * scale)}
       width={r2(W * scale)}
       height={r2(H * scale)}
+      filter={filter}
     />
   );
 }
 
-function PhotoComposition({ config, scene, shadowId }: { config: VisualConfig; scene: BouquetScene; shadowId: string }) {
-  const colors = PALETTE_COMPOSER_COLORS[config.palette];
+function PhotoComposition({ config, scene, uid }: { config: VisualConfig; scene: BouquetScene; uid: string }) {
+  const flowerColors = PALETTE_COMPOSER_COLORS[config.palette].map((c) => COMPOSER_COLOR_HEX[c]);
+  const wrapColor = WRAP_BY_ID[config.wrap].color;
+  const ribbonColor = RIBBON_BY_ID[config.ribbon].color;
+  const flowerFilter = (i: number) => `url(#${uid}-flor-${i})`;
   const s = scene.sizeScale;
   const bowSize = 118 * s;
   const e = scene.boxHalf * 0.22;
@@ -55,8 +61,24 @@ function PhotoComposition({ config, scene, shadowId }: { config: VisualConfig; s
 
   return (
     <>
-      {/* 1. Envoltorio de atrás */}
-      {!scene.isBox && canvasLayer(composerPaths.wrapBack(config.wrap), s, scene.neckY, PAPER_ANCHOR_Y)}
+      <defs>
+        {/* Tres tintes de flor (uno por color de la paleta), cada uno con sombra suave */}
+        {flowerColors.map((hex, i) => (
+          <filter key={i} id={`${uid}-flor-${i}`} x="-25%" y="-25%" width="150%" height="150%" colorInterpolationFilters="sRGB">
+            <feColorMatrix type="matrix" values={tintMatrix(hex)} result="tinte" />
+            <feDropShadow in="tinte" dx="0" dy="3" stdDeviation="3.5" floodColor="#4A3438" floodOpacity="0.22" />
+          </filter>
+        ))}
+        <filter id={`${uid}-papel`} colorInterpolationFilters="sRGB">
+          <feColorMatrix type="matrix" values={tintMatrix(wrapColor, 0.06)} />
+        </filter>
+        <filter id={`${uid}-cinta`} colorInterpolationFilters="sRGB">
+          <feColorMatrix type="matrix" values={tintMatrix(ribbonColor, 0.08)} />
+        </filter>
+      </defs>
+
+      {/* 1. Papel de atrás */}
+      {!scene.isBox && canvasLayer(composerPaths.paperBack(), s, scene.neckY, PAPER_ANCHOR_Y, `url(#${uid}-papel)`)}
 
       {/* 2. Follaje */}
       {scene.foliage.map((f) => {
@@ -74,45 +96,52 @@ function PhotoComposition({ config, scene, shadowId }: { config: VisualConfig; s
         );
       })}
 
-      {/* 3. Flores, de atrás hacia adelante, con rotación leve estable y sombra suave */}
+      {/* 3. Flores, de atrás hacia adelante, con rotación leve estable, tinte y sombra */}
       {scene.placed.map((p) => {
         const d = p.r * 2.36;
         const rotate = (p.spin - 0.5) * 24;
         return (
           <g key={`p${p.key}`} transform={`translate(${r2(p.x)} ${r2(p.y)}) rotate(${r2(rotate)})`}>
             <image
-              href={composerPaths.flower(p.kind, colors[p.colorIndex])}
+              href={composerPaths.flower(p.kind)}
               x={r2(-d / 2)}
               y={r2(-d / 2)}
               width={r2(d)}
               height={r2(d)}
-              filter={`url(#${shadowId})`}
+              filter={flowerFilter(p.colorIndex)}
             />
           </g>
         );
       })}
 
-      {/* 4. Envoltorio de adelante (incluye los tallos) o frente de la caja */}
-      {scene.isBox
-        ? canvasLayer(composerPaths.box(), s, scene.boxTop, BOX_ANCHOR_Y)
-        : canvasLayer(composerPaths.wrapFront(config.wrap), s, scene.neckY, PAPER_ANCHOR_Y)}
+      {/* 4. Tallos y papel de adelante, o frente de la caja */}
+      {scene.isBox ? (
+        canvasLayer(composerPaths.box(), s, scene.boxTop, BOX_ANCHOR_Y)
+      ) : (
+        <>
+          {canvasLayer(composerPaths.stems(), s, scene.neckY, PAPER_ANCHOR_Y)}
+          {canvasLayer(composerPaths.paperFront(), s, scene.neckY, PAPER_ANCHOR_Y, `url(#${uid}-papel)`)}
+        </>
+      )}
 
       {/* 5. Moño */}
       {scene.isBox ? (
         <image
-          href={composerPaths.ribbon(config.ribbon)}
+          href={composerPaths.ribbon()}
           x={r2(CX + scene.boxHalf * 0.52 - bowSize * 0.31)}
           y={r2(boxBowY - bowSize * 0.31)}
           width={r2(bowSize * 0.62)}
           height={r2(bowSize * 0.62)}
+          filter={`url(#${uid}-cinta)`}
         />
       ) : (
         <image
-          href={composerPaths.ribbon(config.ribbon)}
+          href={composerPaths.ribbon()}
           x={r2(CX - bowSize / 2)}
           y={r2(scene.neckY - 4 - bowSize / 2)}
           width={r2(bowSize)}
           height={r2(bowSize)}
+          filter={`url(#${uid}-cinta)`}
         />
       )}
     </>
@@ -129,12 +158,13 @@ interface Layer {
 }
 
 const keyFor = (c: VisualConfig) => `${c.palette}|${c.flowers.join(".")}|${c.size}|${c.wrap}|${c.ribbon}`;
+const safeId = (key: string) => key.replace(/[^a-zA-Z0-9]/g, "");
 
 function BouquetComposerBase({ palette, flowers, size, wrap, ribbon, className, label, decorative }: BouquetComposerProps) {
   const config = useMemo(() => ({ palette, flowers, size, wrap, ribbon }), [palette, flowers, size, wrap, ribbon]);
   const key = keyFor(config);
   const urls = useMemo(() => assetsForConfig(config), [config]);
-  const shadowId = `sombra-${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
+  const instanceId = useId().replace(/[^a-zA-Z0-9]/g, "");
   const description = label ?? describeBouquet(config);
 
   // Si los assets ya se conocen (caché), la primera composición se muestra sin esperar.
@@ -187,12 +217,8 @@ function BouquetComposerBase({ palette, flowers, size, wrap, ribbon, className, 
         >
           {layer.mode === "photo" ? (
             <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet" className="block h-full w-full" aria-hidden="true">
-              <defs>
-                <filter id={shadowId} x="-25%" y="-25%" width="150%" height="150%">
-                  <feDropShadow dx="0" dy="3" stdDeviation="3.5" floodColor="#4A3438" floodOpacity="0.22" />
-                </filter>
-              </defs>
-              <PhotoComposition config={layer.config} scene={layoutScene(layer.config)} shadowId={shadowId} />
+              {/* Ids de filtro únicos por instancia y por capa: dos capas en fundido no comparten tintes */}
+              <PhotoComposition config={layer.config} scene={layoutScene(layer.config)} uid={`${instanceId}${safeId(layer.key)}`} />
             </svg>
           ) : (
             <BouquetPreview {...layer.config} decorative />

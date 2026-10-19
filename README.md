@@ -47,7 +47,7 @@ lo que todavía no existe se reemplaza solo (fotos provisorias o el ramo dibujad
 Para ver en cualquier momento qué está y qué falta, abrí **`/dev/composer`** (página interna, no enlazada):
 muestra la grilla completa, cuántos assets hay y una lista de pendientes para copiar.
 
-### 1. Fotos de ramos completos
+### 1. Fotos de ramos completos (listas)
 
 Se usan en el hero, la colección, las fichas de producto y el carrito.
 
@@ -68,25 +68,34 @@ Se usan en el hero, la colección, las fichas de producto y el carrito.
 
 ### 2. Assets del compositor (vista previa del configurador)
 
-La vista previa del configurador se arma por capas con imágenes de **fondo transparente** (WebP con alfa),
-usando la misma ubicación de flores que el dibujo: envoltorio de atrás, follaje, flores, envoltorio de adelante y moño.
+La vista previa del configurador se arma por capas con **14 imágenes de fondo transparente** (WebP o PNG con alfa),
+usando la misma ubicación de flores que el dibujo: papel de atrás, follaje, flores, tallos, papel de adelante y moño.
+Las flores, el papel y el moño se fotografían **en blanco** y el sitio los tiñe: las flores con los tres colores
+de la paleta, el papel con el color del envoltorio y el moño con el color de la cinta.
 Mientras falte **cualquiera** de las imágenes de una combinación, ese ramo se dibuja en SVG: el sitio nunca queda roto.
 
-Cómo fotografiar o recortar cada tipo:
-
-| Tipo | Medida | Cómo tiene que estar |
+| Archivo | Medida | Cómo tiene que estar |
 |---|---|---|
-| Flores | 400 × 400 o más (cuadrada) | Una sola flor vista desde arriba en leve ángulo, centrada y ocupando ~90% del ancho. Sin tallo ni sombra (la sombra la agrega el sitio). |
-| Follaje | 300 × 600 (1:2) | Una rama de eucalipto vertical, con la base del tallo en el centro del borde inferior. |
-| Envoltorios | 1000 × 1200 (5:6) | Lienzo completo alineado al ramo Clásico: el cuello del ramo (donde va el moño) en el punto **(500, 870)**. El de **atrás** es la parte del papel que queda detrás de las flores; el de **adelante**, el frente del cono **con los tallos que asoman abajo**. |
-| Caja | 1000 × 1200 (5:6) | Frente de la caja sombrerera (cuerpo y banda, sin tapa), con el centro del borde de la boca en **(500, 560)**. |
-| Cintas | 400 × 400 | Moño visto de frente con las dos colas, el nudo en el centro. |
+| `public/composer/flores/rosa.webp` | 600 × 600 o más | Rosa de jardín abierta, blanca. |
+| `public/composer/flores/peonia.webp` | 600 × 600 o más | Peonía bien abierta, blanca, con estambres dorados. |
+| `public/composer/flores/tulipan.webp` | 600 × 600 o más | Tulipán blanco en copa, a 45°. |
+| `public/composer/flores/ranunculo.webp` | 600 × 600 o más | Ranúnculo blanco con capas concéntricas y centro verdoso. |
+| `public/composer/flores/lisianthus.webp` | 600 × 600 o más | Lisianthus blanco abierto. |
+| `public/composer/flores/hortensia.webp` | 600 × 600 o más | Cabeza redonda de hortensia blanca. |
+| `public/composer/follaje/eucalipto-1.webp` a `eucalipto-3.webp` | 300 × 600 (1:2) | Tres ramas de eucalipto distintas, verticales, con la base del tallo en el centro del borde inferior. En su color real. |
+| `public/composer/envoltorios/papel-atras.webp` | 1000 × 1200 (5:6) | Parte trasera del papel (la que queda detrás de las flores), blanca o marfil. |
+| `public/composer/envoltorios/papel-adelante.webp` | 1000 × 1200 (5:6) | Frente del cono de papel, blanco o marfil, sin tallos. |
+| `public/composer/envoltorios/tallos.webp` | 1000 × 1200 (5:6) | Solo los tallos verdes atados que asoman debajo del cono. En su color real. |
+| `public/composer/caja/caja-sombrerera.webp` | 1000 × 1200 (5:6) | Frente de la caja sombrerera lavanda pálido con “Lisboa”, sin tapa, sin cinta. En su color real. |
+| `public/composer/cintas/mono.webp` | 400 × 400 | Moño de satén blanco visto de frente, el nudo en el centro. |
 
-Los tamaños Petite y Abundante usan las mismas imágenes: el sitio las escala.
+Flores: la flor centrada ocupando ~90% del ancho, vista desde arriba en leve ángulo, sin tallo ni sombra (la sombra la agrega el sitio).
+Papel, tallos y caja: lienzo completo alineado al ramo Clásico, con el cuello del ramo (donde va el moño) en **(500, 870)**;
+la caja con el centro del borde de la boca en **(500, 560)**. No hace falta que queden exactos: se ajustan al cargarlos.
+Petite y Abundante usan las mismas imágenes: el sitio las escala.
 
-**Colores.** Cada variedad se fotografía en 9 colores: `blanco`, `crema`, `rubor-claro`, `rubor`, `lavanda-claro`,
-`lavanda`, `durazno-claro`, `durazno`, `manteca`. Cada paleta del configurador usa tres de ellos
-(se cambia en `PALETTE_COMPOSER_COLORS`, en `src/data/catalog.ts`):
+**Colores.** Cada paleta usa tres tonos de flor (se cambian en `PALETTE_COMPOSER_COLORS`) y cada tono tiene su hex
+en `COMPOSER_COLOR_HEX`, los dos en `src/data/catalog.ts`. Para afinar cómo se ve un tinte, alcanza con cambiar el hex.
 
 | Paleta | Colores |
 |---|---|
@@ -96,95 +105,6 @@ Los tamaños Petite y Abundante usan las mismas imágenes: el sitio las escala.
 | Manteca | manteca, crema, blanco |
 | Marfil | blanco, crema, durazno-claro |
 | Jardín | rubor, lavanda, manteca |
-
-Lista completa de archivos (72):
-
-```
-# Flores: Rosas (9)
-public/composer/flores/rosa/blanco.webp
-public/composer/flores/rosa/crema.webp
-public/composer/flores/rosa/rubor-claro.webp
-public/composer/flores/rosa/rubor.webp
-public/composer/flores/rosa/lavanda-claro.webp
-public/composer/flores/rosa/lavanda.webp
-public/composer/flores/rosa/durazno-claro.webp
-public/composer/flores/rosa/durazno.webp
-public/composer/flores/rosa/manteca.webp
-# Flores: Peonías (9)
-public/composer/flores/peonia/blanco.webp
-public/composer/flores/peonia/crema.webp
-public/composer/flores/peonia/rubor-claro.webp
-public/composer/flores/peonia/rubor.webp
-public/composer/flores/peonia/lavanda-claro.webp
-public/composer/flores/peonia/lavanda.webp
-public/composer/flores/peonia/durazno-claro.webp
-public/composer/flores/peonia/durazno.webp
-public/composer/flores/peonia/manteca.webp
-# Flores: Tulipanes (9)
-public/composer/flores/tulipan/blanco.webp
-public/composer/flores/tulipan/crema.webp
-public/composer/flores/tulipan/rubor-claro.webp
-public/composer/flores/tulipan/rubor.webp
-public/composer/flores/tulipan/lavanda-claro.webp
-public/composer/flores/tulipan/lavanda.webp
-public/composer/flores/tulipan/durazno-claro.webp
-public/composer/flores/tulipan/durazno.webp
-public/composer/flores/tulipan/manteca.webp
-# Flores: Ranúnculos (9)
-public/composer/flores/ranunculo/blanco.webp
-public/composer/flores/ranunculo/crema.webp
-public/composer/flores/ranunculo/rubor-claro.webp
-public/composer/flores/ranunculo/rubor.webp
-public/composer/flores/ranunculo/lavanda-claro.webp
-public/composer/flores/ranunculo/lavanda.webp
-public/composer/flores/ranunculo/durazno-claro.webp
-public/composer/flores/ranunculo/durazno.webp
-public/composer/flores/ranunculo/manteca.webp
-# Flores: Lisianthus (9)
-public/composer/flores/lisianthus/blanco.webp
-public/composer/flores/lisianthus/crema.webp
-public/composer/flores/lisianthus/rubor-claro.webp
-public/composer/flores/lisianthus/rubor.webp
-public/composer/flores/lisianthus/lavanda-claro.webp
-public/composer/flores/lisianthus/lavanda.webp
-public/composer/flores/lisianthus/durazno-claro.webp
-public/composer/flores/lisianthus/durazno.webp
-public/composer/flores/lisianthus/manteca.webp
-# Flores: Hortensias (9)
-public/composer/flores/hortensia/blanco.webp
-public/composer/flores/hortensia/crema.webp
-public/composer/flores/hortensia/rubor-claro.webp
-public/composer/flores/hortensia/rubor.webp
-public/composer/flores/hortensia/lavanda-claro.webp
-public/composer/flores/hortensia/lavanda.webp
-public/composer/flores/hortensia/durazno-claro.webp
-public/composer/flores/hortensia/durazno.webp
-public/composer/flores/hortensia/manteca.webp
-# Follaje (4)
-public/composer/follaje/eucalipto-1.webp
-public/composer/follaje/eucalipto-2.webp
-public/composer/follaje/eucalipto-3.webp
-public/composer/follaje/eucalipto-4.webp
-# Envoltorios (8)
-public/composer/envoltorios/seda-marfil-atras.webp
-public/composer/envoltorios/seda-marfil-adelante.webp
-public/composer/envoltorios/lino-rubor-atras.webp
-public/composer/envoltorios/lino-rubor-adelante.webp
-public/composer/envoltorios/kraft-atras.webp
-public/composer/envoltorios/kraft-adelante.webp
-public/composer/envoltorios/salvia-atras.webp
-public/composer/envoltorios/salvia-adelante.webp
-# Caja (1)
-public/composer/caja/caja-sombrerera.webp
-# Cintas (5)
-public/composer/cintas/saten-rubor.webp
-public/composer/cintas/saten-marfil.webp
-public/composer/cintas/salvia.webp
-public/composer/cintas/lavanda.webp
-public/composer/cintas/dorado.webp
-```
-
-Para empezar por lo que más se ve: las combinaciones de los seis diseños de la casa y la paleta por defecto (Durazno con rosas y lisianthus en papel seda marfil) quedan completas con las flores en sus colores, el follaje, los cuatro papeles, la caja y las cinco cintas.
 
 ## Rutas
 

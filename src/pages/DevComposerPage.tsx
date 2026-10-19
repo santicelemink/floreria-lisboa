@@ -1,12 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { Check, Copy } from "lucide-react";
-import { PALETTES, PALETTE_COMPOSER_COLORS } from "@/data/catalog";
+import { COMPOSER_COLORS, COMPOSER_COLOR_HEX, PALETTES, PALETTE_COMPOSER_COLORS, RIBBONS, WRAPS } from "@/data/catalog";
 import { PHOTOS, photoSrc } from "@/data/photos";
 import { PRODUCTS } from "@/data/products";
 import { BouquetComposer } from "@/components/bouquet/BouquetComposer";
 import { paletteBackground } from "@/components/bouquet/BouquetPreview";
 import { Button } from "@/components/ui/button";
-import { allComposerAssets, loadAsset, type AssetStatus } from "@/lib/composerAssets";
+import { allComposerAssets, allComposerUrls, composerPaths, loadAsset, type AssetStatus } from "@/lib/composerAssets";
+import { tintMatrix } from "@/lib/tint";
 import { cn } from "@/lib/utils";
 
 /** Página interna (no enlazada): muestra qué imágenes del compositor y qué fotos faltan. */
@@ -49,6 +50,31 @@ function AssetCell({ url, label, status, wide = false }: { url: string; label: s
   );
 }
 
+/** La imagen teñida con el mismo filtro que usa el compositor. */
+function TintedCell({ url, hex, status, wide = false }: { url: string; hex: string; status?: AssetStatus; wide?: boolean }) {
+  const id = `t${hex.slice(1)}${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
+  return (
+    <div
+      className={cn(
+        "flex items-center justify-center overflow-hidden rounded-[12px] border",
+        wide ? "aspect-[5/6]" : "aspect-square",
+        status === "ok" ? `border-linea ${checker}` : "border-dashed border-linea bg-papel",
+      )}
+    >
+      {status === "ok" ? (
+        <svg viewBox="0 0 100 100" className="h-full w-full" aria-hidden="true">
+          <filter id={id} colorInterpolationFilters="sRGB">
+            <feColorMatrix type="matrix" values={tintMatrix(hex)} />
+          </filter>
+          <image href={url} x="0" y="0" width="100" height="100" filter={`url(#${id})`} preserveAspectRatio="xMidYMid meet" />
+        </svg>
+      ) : (
+        <span className="h-6 w-6 rounded-full border border-linea" style={{ background: hex }} />
+      )}
+    </div>
+  );
+}
+
 function Section({ title, children, note }: { title: string; children: React.ReactNode; note?: string }) {
   return (
     <section className="mt-12">
@@ -62,16 +88,7 @@ function Section({ title, children, note }: { title: string; children: React.Rea
 export function DevComposerPage() {
   const assets = useMemo(() => allComposerAssets(), []);
   const photoUrls = useMemo(() => Object.keys(PHOTOS).flatMap((slug) => [photoSrc(slug), photoSrc(slug, 2)]), []);
-  const composerUrls = useMemo(
-    () => [
-      ...assets.flowers.flatMap((f) => f.items.map((i) => i.url)),
-      ...assets.foliage,
-      ...assets.wraps.map((w) => w.url),
-      assets.box,
-      ...assets.ribbons.map((r) => r.url),
-    ],
-    [assets],
-  );
+  const composerUrls = useMemo(() => allComposerUrls(), []);
   const allUrls = useMemo(() => [...photoUrls, ...composerUrls], [photoUrls, composerUrls]);
   const statuses = useStatuses(allUrls);
   const [copied, setCopied] = useState(false);
@@ -133,26 +150,33 @@ export function DevComposerPage() {
         </div>
       </Section>
 
-      <Section title="Flores" note="400 × 400 o más, fondo transparente, la flor centrada ocupando ~90% del ancho, vista desde arriba en leve ángulo.">
+      <Section
+        title="Flores"
+        note="Una por variedad, fotografiada en blanco. 600 × 600 o más, fondo transparente, la flor centrada ocupando ~90% del ancho, vista desde arriba en leve ángulo. A la derecha, cómo queda teñida en cada color."
+      >
         <div className="overflow-x-auto pb-2">
-          <table className="w-full min-w-[960px] border-separate border-spacing-2 text-left">
+          <table className="w-full min-w-[1040px] border-separate border-spacing-2 text-left">
             <thead>
               <tr>
                 <th className="w-[110px] text-[12px] font-normal uppercase tracking-[0.14em] text-gris-texto">Variedad</th>
-                {assets.flowers[0].items.map((i) => (
-                  <th key={i.color} className="text-[12px] font-normal text-tinta">
-                    {i.color}
+                <th className="text-[12px] font-normal uppercase tracking-[0.14em] text-gris-texto">Archivo</th>
+                {COMPOSER_COLORS.map((c) => (
+                  <th key={c} className="text-[12px] font-normal text-tinta">
+                    {c}
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {assets.flowers.map(({ flower, items }) => (
+              {assets.flowers.map(({ flower, url }) => (
                 <tr key={flower.id}>
                   <th className="align-top font-serif text-[18px] font-normal">{flower.label}</th>
-                  {items.map((i) => (
-                    <td key={i.color} className="align-top">
-                      <AssetCell url={i.url} label={`${flower.id}/${i.color}.webp`} status={statuses[i.url]} />
+                  <td className="align-top">
+                    <AssetCell url={url} label={`flores/${flower.id}.webp`} status={statuses[url]} />
+                  </td>
+                  {COMPOSER_COLORS.map((c) => (
+                    <td key={c} className="align-top">
+                      <TintedCell url={url} hex={COMPOSER_COLOR_HEX[c]} status={statuses[url]} />
                     </td>
                   ))}
                 </tr>
@@ -162,8 +186,8 @@ export function DevComposerPage() {
         </div>
       </Section>
 
-      <Section title="Follaje" note="300 × 600, transparente, la base de la rama en el centro del borde inferior.">
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-8">
+      <Section title="Follaje" note="300 × 600, transparente, la base de la rama en el centro del borde inferior. Sin teñir.">
+        <div className="grid grid-cols-3 gap-4 sm:grid-cols-6 lg:grid-cols-8">
           {assets.foliage.map((u) => (
             <AssetCell key={u} url={u} label={u.split("/").pop()!} status={statuses[u]} />
           ))}
@@ -171,26 +195,38 @@ export function DevComposerPage() {
       </Section>
 
       <Section
-        title="Envoltorios y caja"
-        note="1000 × 1200 (5:6), transparente, alineados al ramo Clásico: el cuello del ramo en (500, 870). El de adelante incluye los tallos. La caja: el borde de la boca en (500, 560)."
+        title="Papel, tallos y caja"
+        note="1000 × 1200 (5:6), transparentes, alineados al ramo Clásico: el cuello del ramo en (500, 870). El papel va en blanco o marfil (se tiñe con el color de cada envoltorio); los tallos y la caja, en su color real. La caja: el centro del borde de la boca en (500, 560)."
       >
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-9">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-8">
           {assets.wraps.map((w) => (
-            <AssetCell key={w.url} url={w.url} label={w.url.split("/").pop()!} status={statuses[w.url]} wide />
+            <AssetCell key={w.url} url={w.url} label={w.label} status={statuses[w.url]} wide />
           ))}
           <AssetCell url={assets.box} label="caja-sombrerera.webp" status={statuses[assets.box]} wide />
         </div>
-      </Section>
-
-      <Section title="Cintas" note="400 × 400, transparente, el nudo del moño en el centro.">
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-5 lg:grid-cols-8">
-          {assets.ribbons.map((r) => (
-            <AssetCell key={r.url} url={r.url} label={r.url.split("/").pop()!} status={statuses[r.url]} />
+        <div className="mt-4 grid grid-cols-4 gap-4 sm:grid-cols-8">
+          {WRAPS.filter((w) => w.kind === "paper").map((w) => (
+            <figure key={w.id}>
+              <TintedCell url={composerPaths.paperFront()} hex={w.color} status={statuses[composerPaths.paperFront()]} wide />
+              <figcaption className="mt-1.5 text-[12px] text-tinta">{w.label}</figcaption>
+            </figure>
           ))}
         </div>
       </Section>
 
-      <Section title="Paletas → colores fotográficos">
+      <Section title="Moño" note="400 × 400, transparente, satén blanco, el nudo en el centro. Se tiñe con el color de cada cinta.">
+        <div className="grid grid-cols-3 gap-4 sm:grid-cols-6 lg:grid-cols-8">
+          <AssetCell url={assets.ribbon} label="cintas/mono.webp" status={statuses[assets.ribbon]} />
+          {RIBBONS.map((r) => (
+            <figure key={r.id}>
+              <TintedCell url={assets.ribbon} hex={r.color} status={statuses[assets.ribbon]} />
+              <figcaption className="mt-1.5 text-[12px] text-tinta">{r.label}</figcaption>
+            </figure>
+          ))}
+        </div>
+      </Section>
+
+      <Section title="Paletas → colores de flor">
         <ul className="grid gap-2 text-[14px] sm:grid-cols-2 lg:grid-cols-3">
           {PALETTES.map((p) => (
             <li key={p.id} className="rounded-option border border-linea bg-papel px-4 py-3">

@@ -218,7 +218,10 @@ export const HARMONY: Record<PaletteId, { wraps: WrapId[]; ribbons: RibbonId[] }
 
 /* ---------- Compositor fotográfico ---------- */
 
-/** Colores en los que se fotografía cada variedad (assets del compositor). */
+/**
+ * Colores de flor del compositor. Las flores se fotografían una sola vez, en blanco,
+ * y el sitio las tiñe con estos tonos. Ajustá los hex para afinar cómo se ven.
+ */
 export const COMPOSER_COLORS = [
   "blanco",
   "crema",
@@ -232,7 +235,19 @@ export const COMPOSER_COLORS = [
 ] as const;
 export type ComposerColor = (typeof COMPOSER_COLORS)[number];
 
-/** Cómo se traduce cada paleta a tres colores fotográficos (mismo orden que `Palette.colors`). */
+export const COMPOSER_COLOR_HEX: Record<ComposerColor, string> = {
+  blanco: "#FFFDF9",
+  crema: "#F3E6CB",
+  "rubor-claro": "#F8D7DD",
+  rubor: "#EBA8B6",
+  "lavanda-claro": "#E6DCF5",
+  lavanda: "#BCA8E0",
+  "durazno-claro": "#FBDFCD",
+  durazno: "#F3B296",
+  manteca: "#F6E09C",
+};
+
+/** Cómo se traduce cada paleta a tres colores de flor (mismo orden que `Palette.colors`). */
 export const PALETTE_COMPOSER_COLORS: Record<PaletteId, [ComposerColor, ComposerColor, ComposerColor]> = {
   rubor: ["rubor-claro", "rubor", "blanco"],
   lavanda: ["lavanda-claro", "lavanda", "blanco"],
