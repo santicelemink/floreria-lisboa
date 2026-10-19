@@ -92,10 +92,25 @@ function isoToUTC(iso: string) {
 
 /** "sábado 18 de octubre" */
 export function formatLongDate(iso: string) {
-  return longDate.format(isoToUTC(iso));
+  return longDate.format(isoToUTC(iso)).replace(",", "");
 }
 
 /** "sáb 18 oct" */
 export function formatShortDate(iso: string) {
   return shortDate.format(isoToUTC(iso)).replace(/\./g, "").replace(",", "");
+}
+
+const dateTime = new Intl.DateTimeFormat("es-AR", {
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+  timeZone: TIME_ZONE,
+});
+
+/** "lunes 20 de octubre, 12:05 h" en hora de Buenos Aires. */
+export function formatDateTime(iso: string) {
+  return `${dateTime.format(new Date(iso)).replace(",", "").replace(/,? (\d{2}:\d{2})$/, ", $1")} h`;
 }

@@ -3,50 +3,57 @@ import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ChevronLeft, Loader2, Lock } from "lucide-react";
+import { ChevronLeft, Loader2, Lock, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
-import { Chip, OptionCard } from "@/components/ui/choice";
 import { CartItemRow } from "@/components/cart/CartItemRow";
 import { DeliveryPicker, deliveryProblem, type DeliveryProblem } from "@/components/cart/DeliveryPicker";
-import { FreeShippingBar } from "@/components/cart/FreeShippingBar";
 import { PaymentBadges } from "@/components/cart/PaymentBadges";
+import { ATELIER, PAYMENT_WINDOW_HOURS } from "@/data/catalog";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { isValidArgentinePhone } from "@/lib/phone";
-import { cartTotals } from "@/lib/pricing";
+import { cartTotal } from "@/lib/pricing";
 import { formatPrice } from "@/lib/format";
 import { formatLongDate } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import { createOrder } from "@/services/orders";
-import { createPayment, PAYMENT_LABELS, type PaymentMethod } from "@/services/payments";
+import { createPaymentPreference, MOCK_PAYMENT_METHODS } from "@/services/payments";
 import { deliveryDateISO, useCart } from "@/store/cart";
 
-const phone = (empty: string, invalid: string) =>
-  z.string().trim().min(1, empty).refine(isValidArgentinePhone, invalid);
+const PHONE_HINT = "Revisá el número. Por ejemplo: 11 2345 6789.";
 
-const schema = z.object({
-  buyerName: z.string().trim().min(2, "Escribí tu nombre y apellido."),
-  email: z.string().trim().min(1, "Necesitamos tu email para mandarte el comprobante.").email("Revisá el email: parece incompleto."),
-  whatsapp: phone("Dejanos tu WhatsApp: por ahí te mandamos la foto del ramo.", "Revisá el número. Por ejemplo: 11 2345 6789."),
-  recipientName: z.string().trim().min(2, "Escribí el nombre de quien recibe el ramo."),
-  address: z
-    .string()
-    .trim()
-    .min(5, "Escribí la dirección con calle y altura.")
-    .refine((v) => /\d/.test(v), "Sumá la altura de la calle, por ejemplo: Honduras 4800."),
-  apartment: z.string().trim().max(40, "Usá menos de 40 caracteres.").optional(),
-  recipientPhone: phone("Necesitamos un teléfono por si no responden el timbre.", "Revisá el teléfono. Por ejemplo: 11 2345 6789."),
-  notes: z.string().trim().max(200, "Usá menos de 200 caracteres.").optional(),
-});
+const schema = z
+  .object({
+    deliveryMode: z.enum(["envio", "retiro"]),
+    buyerName: z.string().trim().min(2, "Escribí tu nombre y apellido."),
+    email: z.string().trim().min(1, "Necesitamos tu email para mandarte el comprobante.").email("Revisá el email: parece incompleto."),
+    whatsapp: z
+      .string()
+      .trim()
+      .min(1, "Dejanos tu WhatsApp: por ahí coordinamos la entrega y te mandamos la foto.")
+      .refine(isValidArgentinePhone, PHONE_HINT),
+    recipientName: z.string().trim().optional(),
+    address: z.string().trim().optional(),
+    apartment: z.string().trim().max(40, "Usá menos de 40 caracteres.").optional(),
+    recipientPhone: z.string().trim().optional(),
+    notes: z.string().trim().max(200, "Usá menos de 200 caracteres.").optional(),
+  })
+  .superRefine((v, ctx) => {
+    if (v.deliveryMode !== "envio") return;
+    if (!v.recipientName || v.recipientName.length < 2)
+      ctx.addIssue({ code: "custom", path: ["recipientName"], message: "Escribí el nombre de quien recibe el ramo." });
+    if (!v.address || v.address.length < 5)
+      ctx.addIssue({ code: "custom", path: ["address"], message: "Escribí la dirección con calle y altura." });
+    else if (!/\d/.test(v.address))
+      ctx.addIssue({ code: "custom", path: ["address"], message: "Sumá la altura de la calle, por ejemplo: Honduras 4800." });
+    if (!v.recipientPhone)
+      ctx.addIssue({ code: "custom", path: ["recipientPhone"], message: "Necesitamos un teléfono por si no responden el timbre." });
+    else if (!isValidArgentinePhone(v.recipientPhone))
+      ctx.addIssue({ code: "custom", path: ["recipientPhone"], message: PHONE_HINT });
+  });
 
 type FormValues = z.infer<typeof schema>;
-
-const PAYMENT_OPTIONS: { id: PaymentMethod; detail: string }[] = [
-  { id: "mercadopago", detail: "Dinero en cuenta, tarjetas o hasta 3 cuotas sin interés." },
-  { id: "tarjeta", detail: "Visa, Mastercard y American Express." },
-  { id: "transferencia", detail: "Te mandamos el CBU por WhatsApp. El pedido se confirma al acreditarse." },
-];
 
 function Block({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
   return (
@@ -68,19 +75,28 @@ export function CheckoutPage() {
   const ids = useId();
   const items = useCart((s) => s.items);
   const delivery = useCart((s) => s.delivery);
-  const placeOrder = useCart((s) => s.placeOrder);
+  const createOrderInStore = useCart((s) => s.createOrder);
   const normalizeDelivery = useCart((s) => s.normalizeDelivery);
-  const totals = cartTotals(items.map((i) => i.price));
-  const [method, setMethod] = useState<PaymentMethod>("mercadopago");
-  const [installments, setInstallments] = useState<1 | 3>(1);
+  const total = cartTotal(items.map((i) => i.price));
   const [problem, setProblem] = useState<DeliveryProblem | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const isPickup = delivery.mode === "retiro";
 
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
-  } = useForm<FormValues>({ resolver: zodResolver(schema), mode: "onTouched" });
+  } = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    mode: "onTouched",
+    defaultValues: { deliveryMode: delivery.mode },
+  });
+
+  // El modo de entrega vive en el carrito; el formulario lo usa para saber qué datos pedir.
+  useEffect(() => {
+    setValue("deliveryMode", delivery.mode, { shouldValidate: false });
+  }, [delivery.mode, setValue]);
 
   useEffect(() => {
     normalizeDelivery();
@@ -144,40 +160,27 @@ export function CheckoutPage() {
     }
     setSubmitting(true);
     try {
-      const dateISO = deliveryDateISO(delivery);
       const order = await createOrder({
         buyer: { name: values.buyerName, email: values.email, whatsapp: values.whatsapp },
-        recipient: {
-          name: values.recipientName,
-          address: values.address,
-          apartment: values.apartment,
-          phone: values.recipientPhone,
-          notes: values.notes,
-        },
+        recipient: isPickup
+          ? { name: values.recipientName || values.buyerName, notes: values.notes }
+          : {
+              name: values.recipientName ?? "",
+              address: values.address,
+              apartment: values.apartment,
+              phone: values.recipientPhone,
+              notes: values.notes,
+            },
         items,
-        delivery: { ...delivery, dateISO },
-        ...totals,
+        delivery: { ...delivery, barrio: isPickup ? null : delivery.barrio, dateISO: deliveryDateISO(delivery) },
+        total,
       });
-      await createPayment({ orderId: order.id, amount: totals.total, method, installments: method === "transferencia" ? 1 : installments });
-      placeOrder({
-        id: order.id,
-        number: order.number,
-        createdAt: order.createdAt,
-        buyerName: values.buyerName.split(" ")[0],
-        recipientName: values.recipientName,
-        items,
-        delivery: { ...delivery, dateISO },
-        subtotal: totals.subtotal,
-        shipping: totals.shipping,
-        total: totals.total,
-        paymentLabel:
-          method === "transferencia"
-            ? PAYMENT_LABELS[method]
-            : `${PAYMENT_LABELS[method]}${installments === 3 ? " · 3 cuotas sin interés" : ""}`,
-      });
-      navigate("/pedido-confirmado", { replace: true });
+      createOrderInStore(order);
+      const preference = await createPaymentPreference(order);
+      // En producción, init_point es la URL de Mercado Pago (redirección externa).
+      navigate(preference.initPoint, { replace: true });
     } catch {
-      toast("No pudimos procesar el pago. Probá de nuevo en unos segundos.");
+      toast("No pudimos crear el pedido. Probá de nuevo en unos segundos.");
       setSubmitting(false);
     }
   };
@@ -201,6 +204,7 @@ export function CheckoutPage() {
       </header>
 
       <form onSubmit={handleSubmit(onValid, onInvalid)} noValidate className="mt-10 grid items-start gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] lg:gap-10">
+        <input type="hidden" {...register("deliveryMode")} />
         <div className="space-y-5">
           <Block n={1} title="Tus datos">
             <div className="grid gap-4 sm:grid-cols-2">
@@ -210,53 +214,56 @@ export function CheckoutPage() {
             </div>
           </Block>
 
-          <Block n={2} title="Quién lo recibe">
-            <div className="grid gap-4 sm:grid-cols-2">
-              {field("recipientName", "Nombre de quien recibe", <Input {...fieldProps("recipientName")} autoComplete="off" />, { className: "sm:col-span-2" })}
-              {field("address", "Dirección", <Input {...fieldProps("address")} autoComplete="street-address" placeholder="Honduras 4800" />)}
-              {field("apartment", "Piso o depto", <Input {...fieldProps("apartment")} placeholder="3.° B" />, { optional: true })}
-              {field("recipientPhone", "Teléfono de quien recibe", <Input type="tel" inputMode="tel" {...fieldProps("recipientPhone")} placeholder="11 2345 6789" />, { className: "sm:col-span-2" })}
-              {field("notes", "Notas para el repartidor", <Textarea {...fieldProps("notes")} className="min-h-[88px]" placeholder="Timbre que no anda, portería, horario preferido…" />, { optional: true, className: "sm:col-span-2" })}
-            </div>
+          <Block n={2} title="Entrega">
+            <DeliveryPicker problem={problem} />
             <div className="mt-7 border-t border-linea pt-6">
-              <DeliveryPicker problem={problem} />
+              {isPickup ? (
+                <div className="grid gap-4">
+                  {field("recipientName", "Quién lo retira", <Input {...fieldProps("recipientName")} autoComplete="off" placeholder="Si no sos vos" />, { optional: true })}
+                  {field("notes", "Notas", <Textarea {...fieldProps("notes")} className="min-h-[88px]" placeholder="Algo que tengamos que saber" />, { optional: true })}
+                </div>
+              ) : (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {field("recipientName", "Nombre de quien recibe", <Input {...fieldProps("recipientName")} autoComplete="off" />, { className: "sm:col-span-2" })}
+                  {field("address", "Dirección", <Input {...fieldProps("address")} autoComplete="street-address" placeholder="Honduras 4800" />)}
+                  {field("apartment", "Piso o depto", <Input {...fieldProps("apartment")} placeholder="3.° B" />, { optional: true })}
+                  {field("recipientPhone", "Teléfono de quien recibe", <Input type="tel" inputMode="tel" {...fieldProps("recipientPhone")} placeholder="11 2345 6789" />, { className: "sm:col-span-2" })}
+                  {field("notes", "Notas para la entrega", <Textarea {...fieldProps("notes")} className="min-h-[88px]" placeholder="Timbre que no anda, portería, horario preferido…" />, { optional: true, className: "sm:col-span-2" })}
+                </div>
+              )}
             </div>
           </Block>
 
           <Block n={3} title="Pago">
-            <div role="group" aria-label="Medio de pago" className="grid gap-3">
-              {PAYMENT_OPTIONS.map((p) => (
-                <OptionCard key={p.id} selected={method === p.id} onClick={() => setMethod(p.id)} className="pr-12">
-                  <span className="block text-[16px] text-tinta">{PAYMENT_LABELS[p.id]}</span>
-                  <span className="mt-0.5 block text-[13px] text-gris-texto">{p.detail}</span>
-                </OptionCard>
+            <p className="text-[15px] leading-relaxed text-tinta">
+              Pagás en <span className="font-normal">Mercado Pago</span>, con el medio que prefieras:
+            </p>
+            <ul className="mt-3 grid gap-2 text-[14px] text-gris-texto sm:grid-cols-2">
+              {MOCK_PAYMENT_METHODS.map((m) => (
+                <li key={m.id} className="rounded-option border border-linea bg-marfil px-3.5 py-2.5">
+                  {m.label}
+                </li>
               ))}
-            </div>
-            {method !== "transferencia" && (
-              <fieldset className="mt-5">
-                <legend className="text-[12px] uppercase tracking-[0.16em] text-tinta">Cuotas</legend>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Chip selected={installments === 1} onClick={() => setInstallments(1)}>
-                    1 pago de {formatPrice(totals.total)}
-                  </Chip>
-                  <Chip selected={installments === 3} onClick={() => setInstallments(3)}>
-                    3 cuotas sin interés de {formatPrice(totals.total / 3)}
-                  </Chip>
-                </div>
-              </fieldset>
-            )}
-            <p className="mt-5 flex items-start gap-2 rounded-option bg-marfil p-4 text-[13px] leading-relaxed text-gris-texto">
+            </ul>
+            <p className="mt-5 flex items-start gap-2.5 rounded-option bg-salvia/70 p-4 text-[14px] leading-relaxed text-tinta">
+              <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-malva-profundo" strokeWidth={1.5} aria-hidden="true" />
+              <span>
+                Tu pedido se confirma cuando Mercado Pago aprueba el pago. Si pagás en efectivo o por transferencia, queda
+                reservado {PAYMENT_WINDOW_HOURS} h hasta que se acredite.
+              </span>
+            </p>
+            <p className="mt-3 flex items-start gap-2 text-[13px] leading-relaxed text-gris-texto">
               <Lock className="mt-0.5 h-4 w-4 shrink-0 text-malva-oscuro" strokeWidth={1.5} aria-hidden="true" />
-              Prototipo: el pago está simulado. En el sitio final se completa en Mercado Pago, sin guardar datos de tarjeta acá.
+              Los datos de tu tarjeta los carga Mercado Pago: nunca pasan por este sitio.
             </p>
             <Button type="submit" className="mt-6 w-full" disabled={submitting}>
               {submitting ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.5} aria-hidden="true" />
-                  Confirmando tu pedido…
+                  Preparando tu pago…
                 </>
               ) : (
-                <>Confirmar y pagar {formatPrice(totals.total)}</>
+                <>Ir a pagar {formatPrice(total)}</>
               )}
             </Button>
           </Block>
@@ -266,31 +273,33 @@ export function CheckoutPage() {
           <h2 id="resumen-titulo" className="font-serif text-[26px]">
             Resumen
           </h2>
-          <FreeShippingBar className="mt-4" missing={totals.missingForFree} progress={totals.progress} />
           <ul className="mt-2 divide-y divide-linea">
             {items.map((item) => (
               <CartItemRow key={item.id} item={item} />
             ))}
           </ul>
           <div className="border-t border-linea pt-4 text-[14px]">
-            <p className="text-gris-texto">Entrega</p>
+            <p className="text-gris-texto">{isPickup ? "Retiro en el atelier" : "Envío a domicilio"}</p>
             <p className="mt-1 first-letter:uppercase">
-              {formatLongDate(deliveryDateISO(delivery))} · {delivery.slot ?? "elegí una franja"}
-              {delivery.barrio ? ` · ${delivery.barrio}` : ""}
+              {formatLongDate(deliveryDateISO(delivery))} · {delivery.slot}
+              {!isPickup && delivery.barrio ? ` · ${delivery.barrio}` : ""}
+            </p>
+            <p className="mt-1 text-[13px] text-gris-texto">
+              {isPickup ? ATELIER.address : "Día y horario a confirmar por WhatsApp."}
             </p>
           </div>
           <dl className="mt-4 space-y-1.5 border-t border-linea pt-4 text-[14px]">
-            <div className="flex justify-between">
-              <dt className="text-gris-texto">Subtotal</dt>
-              <dd className="tabular">{formatPrice(totals.subtotal)}</dd>
+            <div className="flex justify-between gap-4">
+              <dt className="text-gris-texto">Ramos</dt>
+              <dd className="tabular">{formatPrice(total)}</dd>
             </div>
-            <div className="flex justify-between">
-              <dt className="text-gris-texto">Envío</dt>
-              <dd className="tabular">{totals.shipping ? formatPrice(totals.shipping) : <span className="text-malva-oscuro">Sin cargo</span>}</dd>
+            <div className="flex justify-between gap-4">
+              <dt className="text-gris-texto">{isPickup ? "Retiro" : "Envío"}</dt>
+              <dd className="text-right">{isPickup ? "Sin cargo" : "Se coordina y abona aparte"}</dd>
             </div>
             <div className="flex items-baseline justify-between pt-2">
-              <dt className="uppercase tracking-[0.14em]">Total</dt>
-              <dd className="tabular font-serif text-[26px] leading-none">{formatPrice(totals.total)}</dd>
+              <dt className="uppercase tracking-[0.14em]">Total a pagar</dt>
+              <dd className="tabular font-serif text-[26px] leading-none">{formatPrice(total)}</dd>
             </div>
           </dl>
           <PaymentBadges className="mt-5" />

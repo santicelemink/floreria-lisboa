@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 
-const BADGES = ["Mercado Pago", "Tarjetas", "Transferencia", "3 cuotas sin interés"];
+const BADGES = ["Mercado Pago", "Tarjetas", "Efectivo", "3 cuotas sin interés"];
 
 export function PaymentBadges({ className }: { className?: string }) {
   return (

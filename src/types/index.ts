@@ -40,23 +40,41 @@ export interface CartItem {
 
 export type DeliveryDay = "hoy" | "manana" | "otra";
 
+/** La florería no tiene reparto propio: el envío se coordina por WhatsApp con mensajería. */
+export type DeliveryMode = "envio" | "retiro";
+
 export interface DeliveryInfo {
+  mode: DeliveryMode;
   day: DeliveryDay;
   date: string | null; // YYYY-MM-DD, solo para "otra"
   slot: string | null;
-  barrio: string | null;
+  barrio: string | null; // solo para envío
 }
 
-export interface PlacedOrder {
+/**
+ * Estado del pago, como en Mercado Pago:
+ * - sin_pagar: el pedido se creó pero todavía no se pagó.
+ * - pendiente: se eligió un medio que se acredita después (efectivo, transferencia).
+ * - aprobado: pago acreditado. Recién acá el pedido queda confirmado.
+ * - rechazado: el pago no pasó; se puede reintentar con otro medio.
+ */
+export type PaymentStatus = "sin_pagar" | "pendiente" | "aprobado" | "rechazado";
+
+export interface Order {
   id: string;
   number: string;
   createdAt: string;
-  buyerName: string;
-  recipientName: string;
+  /** Si el pago no se aprueba antes de esta fecha, el pedido se cancela. */
+  expiresAt: string;
+  buyer: { name: string; email: string; whatsapp: string };
+  recipient: { name: string; address?: string; apartment?: string; phone?: string; notes?: string };
   items: CartItem[];
   delivery: DeliveryInfo & { dateISO: string };
-  subtotal: number;
-  shipping: number;
   total: number;
-  paymentLabel: string;
+  payment: {
+    status: PaymentStatus;
+    methodLabel?: string;
+    installments?: number;
+    updatedAt: string;
+  };
 }

@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useId, useState } from "react";
-import { CalendarDays } from "lucide-react";
-import { BARRIOS } from "@/data/catalog";
+import { CalendarDays, MessageCircle, Store, Truck } from "lucide-react";
+import { ATELIER, BARRIOS } from "@/data/catalog";
 import { Chip } from "@/components/ui/choice";
 import {
   Popover,
@@ -69,10 +69,45 @@ export function DeliveryPicker({
   const maxDate = isoToLocalDate(baDateISO(60));
   const headingClass = "text-[12px] uppercase tracking-[0.16em] text-tinta";
 
+  const isPickup = delivery.mode === "retiro";
+
   return (
     <div className={cn("space-y-5", compact && "space-y-4")}>
       <fieldset>
-        <legend className={headingClass}>Día de entrega</legend>
+        <legend className={headingClass}>Cómo lo recibís</legend>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          {[
+            { mode: "envio" as const, label: "Envío a domicilio", icon: Truck },
+            { mode: "retiro" as const, label: "Retiro en el atelier", icon: Store },
+          ].map(({ mode, label, icon: Icon }) => (
+            <Chip
+              key={mode}
+              selected={delivery.mode === mode}
+              onClick={() => setDelivery({ mode })}
+              className="h-auto min-h-[44px] justify-start rounded-option px-3 py-2.5 text-left text-[14px] leading-snug"
+            >
+              <Icon className="h-4 w-4 shrink-0" strokeWidth={1.5} aria-hidden="true" />
+              {label}
+            </Chip>
+          ))}
+        </div>
+        <p className="mt-3 flex gap-2.5 rounded-option bg-salvia/70 px-3.5 py-3 text-[13px] leading-relaxed text-tinta">
+          <MessageCircle className="mt-0.5 h-4 w-4 shrink-0 text-malva-profundo" strokeWidth={1.5} aria-hidden="true" />
+          {isPickup ? (
+            <span>
+              Retirás sin cargo en {ATELIER.address}. Te escribimos por WhatsApp cuando esté listo.
+            </span>
+          ) : (
+            <span>
+              No tenemos reparto propio: lo enviamos con mensajería y coordinamos día, horario y costo por WhatsApp. El
+              envío se abona aparte y depende de la zona.
+            </span>
+          )}
+        </p>
+      </fieldset>
+
+      <fieldset>
+        <legend className={headingClass}>{isPickup ? "Día de retiro" : "Día preferido"}</legend>
         <div className="mt-3 flex flex-wrap gap-2">
           {todayAvailable ? (
             <Chip
@@ -153,7 +188,7 @@ export function DeliveryPicker({
         </div>
         {!todayAvailable && (
           <p id={cutoffNoteId} className="mt-2 text-[13px] text-gris-texto">
-            Pasó el corte de las 14 h: la primera entrega disponible es mañana.
+            Pasó el corte de las 14 h: lo preparamos mañana a primera hora.
           </p>
         )}
         {problem?.field === "date" && (
@@ -162,7 +197,7 @@ export function DeliveryPicker({
       </fieldset>
 
       <fieldset>
-        <legend className={headingClass}>Franja horaria</legend>
+        <legend className={headingClass}>Franja preferida</legend>
         <div className="mt-3 flex flex-wrap gap-2">
           {slots.map((slot) => (
             <Chip
@@ -179,6 +214,7 @@ export function DeliveryPicker({
         )}
       </fieldset>
 
+      {!isPickup && (
       <div>
         <label htmlFor={barrioId} className={headingClass}>
           Barrio
@@ -210,6 +246,7 @@ export function DeliveryPicker({
           </p>
         )}
       </div>
+      )}
     </div>
   );
 }
@@ -228,10 +265,10 @@ export function deliveryProblem(
       field: "slot",
       message: "Elegí una franja horaria para la entrega.",
     };
-  if (!delivery.barrio)
+  if (delivery.mode === "envio" && !delivery.barrio)
     return {
       field: "barrio",
-      message: "Elegí el barrio para coordinar la entrega.",
+      message: "Elegí el barrio para coordinar el envío.",
     };
   return null;
 }

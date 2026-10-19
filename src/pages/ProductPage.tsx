@@ -99,7 +99,7 @@ export function ProductPage() {
             </div>
             <p className="mt-3 text-[13px] text-gris-texto">La tarjeta con tu mensaje la escribís al personalizar o en el pedido por WhatsApp.</p>
 
-            <h2 className="sr-only">Cuidados y envíos</h2>
+            <h2 className="sr-only">Cuidados, envío y retiro</h2>
             <Accordion type="multiple" value={openItems} onValueChange={setOpenItems} className="mt-10 border-t border-linea">
               <AccordionItem value="cuidados" id="cuidados">
                 <AccordionTrigger size="md">Cuidados</AccordionTrigger>
@@ -110,7 +110,7 @@ export function ProductPage() {
                 </AccordionContent>
               </AccordionItem>
               <AccordionItem value="envios">
-                <AccordionTrigger size="md">Envíos</AccordionTrigger>
+                <AccordionTrigger size="md">Envío y retiro</AccordionTrigger>
                 <AccordionContent>
                   <ul className="list-disc space-y-2 pl-5">
                     {SHIPPING_INFO.map((t) => <li key={t}>{t}</li>)}

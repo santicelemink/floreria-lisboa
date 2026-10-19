@@ -3,8 +3,6 @@ import {
   CARD_BY_ID,
   EXTRA_BY_ID,
   FLOWER_BY_ID,
-  FREE_SHIPPING_THRESHOLD,
-  SHIPPING_COST,
   SIZE_BY_ID,
   WRAP_BY_ID,
 } from "@/data/catalog";
@@ -27,19 +25,10 @@ export function calculatePrice(config: BouquetConfig) {
   return roundToHundred(size.base + flowers + wrap + card + extras);
 }
 
-export function shippingFor(subtotal: number) {
-  if (subtotal === 0) return 0;
-  return subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
-}
-
-export function cartTotals(prices: number[]) {
-  const subtotal = prices.reduce((a, b) => a + b, 0);
-  const shipping = shippingFor(subtotal);
-  return {
-    subtotal,
-    shipping,
-    total: subtotal + shipping,
-    missingForFree: Math.max(0, FREE_SHIPPING_THRESHOLD - subtotal),
-    progress: Math.min(1, subtotal / FREE_SHIPPING_THRESHOLD),
-  };
+/**
+ * El envío no se cobra en la web: lo hace una mensajería que se coordina por WhatsApp
+ * y su costo depende de la zona. El total online es solo el de los productos.
+ */
+export function cartTotal(prices: number[]) {
+  return prices.reduce((a, b) => a + b, 0);
 }

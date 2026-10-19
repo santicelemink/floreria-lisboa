@@ -33,7 +33,7 @@ export function Footer() {
             Ayuda
           </h2>
           <ul className="mt-5 space-y-3">
-            <li><Link className={linkClass} to="/#preguntas">Zonas de envío</Link></li>
+            <li><Link className={linkClass} to="/#preguntas">Envíos y retiro</Link></li>
             <li><Link className={linkClass} to="/producto/alfama#cuidados">Cuidado de las flores</Link></li>
             <li><Link className={linkClass} to="/#preguntas">Cambios</Link></li>
             <li>
@@ -46,7 +46,7 @@ export function Footer() {
       </div>
       <div className="border-t border-marfil/15">
         <div className="container flex flex-col gap-2 py-6 text-[13px] text-marfil/75 sm:flex-row sm:items-center sm:justify-between">
-          <p>Prototipo · Precios, reseñas y horarios son de ejemplo.</p>
+          <p>Prototipo · Precios, reseñas, horarios y dirección son de ejemplo.</p>
           <p>Diseño y desarrollo: FLUIQ</p>
         </div>
       </div>

@@ -115,7 +115,9 @@ en `COMPOSER_COLOR_HEX`, los dos en `src/data/catalog.ts`. Para afinar cómo se 
 | `/coleccion` | Diseños de la casa con filtros por ocasión |
 | `/producto/:slug` | Ficha de producto (`alfama`, `sintra`, `belem`, `tejo`, `chiado`, `bairro`) |
 | `/suscripcion` | Planes y recordatorios |
-| `/checkout` | Datos, entrega y pago simulado |
+| `/checkout` | Datos, envío o retiro, y paso a Mercado Pago |
+| `/pago/:numero` | Pago simulado (prototipo). En producción, acá se abre Mercado Pago |
+| `/pedido/:numero` | Estado del pedido según el pago: aprobado, pendiente, sin pagar, rechazado o vencido |
 | `/pedido-confirmado` | Número de pedido y resumen |
 | `/dev/composer` | Uso interno: revisión de imágenes del compositor y fotos (no enlazada, `noindex`) |
 
@@ -131,7 +133,8 @@ src/
   components/
     bouquet/        BouquetPhoto (fotos), BouquetComposer (vista previa por capas) y BouquetPreview (SVG de respaldo)
     configurator/   Los 6 pasos, vista previa, barra de progreso
-    cart/           Drawer del pedido, entrega (corte de las 14 h), envío sin cargo
+    cart/           Drawer del pedido, envío o retiro (corte de las 14 h)
+    order/          Resumen de pedido para el pago y el estado
     pitch/          Modo presentación
     ui/             Componentes shadcn/ui adaptados a la identidad
   data/             Catálogo (ocasiones, paletas, flores, tamaños...), productos y textos
@@ -139,6 +142,27 @@ src/
   services/         Mocks async: orders, payments, reminders, subscriptions
   store/            Zustand: carrito, configurador, modo presentación
 ```
+
+## Pedidos, pagos y entrega
+
+La florería no tiene reparto propio, así que el sitio no cobra envío ni promete horarios:
+
+- **Entrega:** el cliente elige **envío a domicilio** (con mensajería, a coordinar por WhatsApp; el costo depende de la zona y se abona aparte) o **retiro sin cargo en el atelier**. Día y franja quedan como preferencia y se confirman por WhatsApp.
+- **Pago, como en Mercado Libre:** al finalizar, el pedido se crea **sin pagar** y se pasa a Mercado Pago.
+  - **Aprobado** (tarjeta, dinero en cuenta): el pedido queda **confirmado** y aparece el botón para coordinar la entrega por WhatsApp con el número de pedido.
+  - **Pendiente** (efectivo, transferencia): el pedido queda **reservado 24 h** hasta que se acredite; si no se acredita, se cancela solo.
+  - **Rechazado:** no se cobra nada y se puede reintentar con otro medio.
+- Nada se prepara hasta que el pago está aprobado. El corte de las 14 h cuenta desde la aprobación del pago.
+
+En el prototipo el paso por Mercado Pago está simulado en `/pago/:numero` (con opción de simular un rechazo) y la acreditación de un pago pendiente se simula desde la página del pedido.
+
+### Integración real con Mercado Pago
+
+1. El backend crea una **preferencia de Checkout Pro** con los ítems, `external_reference` = número de pedido y `back_urls` (success, pending, failure) que vuelven a `/pedido/{número}`.
+2. El sitio redirige al `init_point` que devuelve Mercado Pago.
+3. Mercado Pago avisa cada cambio por **webhook**; el backend consulta el pago y actualiza el pedido (`approved` → aprobado, `pending`/`in_process` → pendiente, `rejected`/`cancelled` → rechazado).
+4. La página del pedido consulta el estado al backend: nunca confía en el parámetro de la URL de vuelta.
+5. Al aprobarse, el backend avisa a la florería (por ejemplo, un WhatsApp o un email interno) con el pedido completo.
 
 ## Conectar backend más adelante
 

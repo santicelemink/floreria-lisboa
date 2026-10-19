@@ -21,8 +21,10 @@ import { NotFoundPage } from "@/pages/NotFoundPage";
 const ProductPage = lazy(() => import("@/pages/ProductPage").then((m) => ({ default: m.ProductPage })));
 const CheckoutPage = lazy(() => import("@/pages/CheckoutPage").then((m) => ({ default: m.CheckoutPage })));
 const DevComposerPage = lazy(() => import("@/pages/DevComposerPage").then((m) => ({ default: m.DevComposerPage })));
-const OrderConfirmedPage = lazy(() =>
-  import("@/pages/OrderConfirmedPage").then((m) => ({ default: m.OrderConfirmedPage })),
+const PaymentPage = lazy(() => import("@/pages/PaymentPage").then((m) => ({ default: m.PaymentPage })));
+const OrderStatusPage = lazy(() => import("@/pages/OrderStatusPage").then((m) => ({ default: m.OrderStatusPage })));
+const LatestOrderRedirect = lazy(() =>
+  import("@/pages/OrderStatusPage").then((m) => ({ default: m.LatestOrderRedirect })),
 );
 
 /** Scroll al tope en cada página nueva; si hay #ancla, scroll hasta la sección. */
@@ -96,7 +98,9 @@ export default function App() {
             <Route path="producto/:slug" element={<ProductPage />} />
             <Route path="suscripcion" element={<SubscriptionPage />} />
             <Route path="checkout" element={<CheckoutPage />} />
-            <Route path="pedido-confirmado" element={<OrderConfirmedPage />} />
+            <Route path="pago/:numero" element={<PaymentPage />} />
+            <Route path="pedido/:numero" element={<OrderStatusPage />} />
+            <Route path="pedido-confirmado" element={<LatestOrderRedirect />} />
             <Route path="dev/composer" element={<DevComposerPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>

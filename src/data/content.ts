@@ -1,5 +1,5 @@
 export const BENEFITS = [
-  { title: "Entrega en el día", text: "Pedidos antes de las 14 h" },
+  { title: "Listo en el día", text: "Pagando antes de las 14 h" },
   { title: "Foto antes de salir", text: "Te la mandamos por WhatsApp" },
   { title: "Flores de estación", text: "Compradas cada mañana" },
   { title: "Hasta 3 cuotas", text: "Mercado Pago y tarjetas" },
@@ -18,20 +18,20 @@ export const PLANS: Plan[] = [
     id: "mensual",
     name: "Mensual",
     price: 31900,
-    features: ["Ramo de estación", "Envío sin cargo", "Pausa cuando quieras"],
+    features: ["Ramo de estación", "Envío o retiro a coordinar", "Pausa cuando quieras"],
   },
   {
     id: "quincenal",
     name: "Quincenal",
     price: 28900,
-    features: ["Ramo de estación", "Envío sin cargo", "Florero de regalo en la primera entrega"],
+    features: ["Ramo de estación", "Envío o retiro a coordinar", "Florero de regalo en la primera entrega"],
     featured: true,
   },
   {
     id: "semanal",
     name: "Semanal",
     price: 25900,
-    features: ["Ramo de estación", "Envío sin cargo", "Ideal para oficinas"],
+    features: ["Ramo de estación", "Envío o retiro a coordinar", "Ideal para oficinas"],
   },
 ];
 
@@ -53,7 +53,15 @@ export const REVIEWS = [
 export const FAQS = [
   {
     q: "¿Hasta qué hora puedo pedir para hoy?",
-    a: "Hasta las 14 h para entregas en CABA. Después de esa hora, el pedido sale al día siguiente.",
+    a: "Si el pago queda aprobado antes de las 14 h, preparamos el ramo en el día. Después de esa hora, lo preparamos al día siguiente a primera hora.",
+  },
+  {
+    q: "¿Cómo es el envío?",
+    a: "No tenemos reparto propio: enviamos con mensajería y coordinamos por WhatsApp el día, el horario y el costo, que depende de la zona y se abona aparte. También podés retirarlo sin cargo en el atelier.",
+  },
+  {
+    q: "¿Cuándo queda confirmado mi pedido?",
+    a: "Cuando Mercado Pago aprueba el pago. Con tarjeta o dinero en cuenta es al instante; con efectivo o transferencia, el pedido queda reservado 24 h hasta que se acredite.",
   },
   {
     q: "¿El ramo va a ser igual a la vista previa?",
@@ -121,9 +129,9 @@ export const PITCH_NOTES: Record<number, PitchNoteData> = {
   },
   8: {
     n: 8,
-    title: "Efecto gradiente de meta",
-    what: "Barra de progreso hacia el envío sin cargo.",
-    why: "Cuanto más cerca se ve una meta, más esfuerzo se hace por alcanzarla (Kivetz). Empuja a sumar un extra en lugar de abandonar por el costo de envío.",
+    title: "Expectativas claras",
+    what: "Envío o retiro coordinado por WhatsApp, y pedido confirmado recién con el pago aprobado, como en Mercado Libre.",
+    why: "Prometer solo lo que la florería puede cumplir evita reclamos: sin reparto propio, el envío se acuerda caso por caso. Y como nada se prepara sin pago acreditado, no se compran flores para pedidos que nunca se pagan.",
   },
 };
 
@@ -131,7 +139,7 @@ export const BUSINESS_GAINS = [
   {
     numeral: "I",
     title: "Vende mientras atendés el local",
-    text: "Los pedidos llegan completos, pagos y con fecha, franja y tarjeta. Se termina el ida y vuelta por WhatsApp para armar cada ramo.",
+    text: "Los pedidos llegan completos y ya pagos, con tarjeta y preferencia de día y franja. Por WhatsApp queda solo coordinar la entrega, no armar cada ramo.",
   },
   {
     numeral: "II",
@@ -153,8 +161,8 @@ export const CARE_TIPS = [
 ];
 
 export const SHIPPING_INFO = [
-  "Entregamos en CABA de lunes a sábado de 9 a 20 h y los domingos de 9 a 14 h.",
-  "Pedidos confirmados antes de las 14 h salen el mismo día, en la franja de 15 a 18 h o de 18 a 20 h.",
-  "Envío sin cargo desde $70.000. Para pedidos menores, el envío cuesta $4.900.",
-  "Antes de salir te mandamos una foto real del ramo por WhatsApp.",
+  "No tenemos reparto propio: enviamos con mensajería y coordinamos día, horario y costo por WhatsApp. El envío depende de la zona y se abona aparte.",
+  "También podés retirarlo sin cargo en el atelier, de lunes a sábado de 8 a 20 h y los domingos de 9 a 14 h.",
+  "Si el pago queda aprobado antes de las 14 h, el ramo está listo en el día.",
+  "Antes de que salga te mandamos una foto real del ramo por WhatsApp.",
 ];

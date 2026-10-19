@@ -278,10 +278,17 @@ export const BARRIOS = [
   "Caballito",
   "Villa Urquiza",
   "Otro barrio de CABA",
+  "Gran Buenos Aires (a consultar)",
 ];
 
-export const FREE_SHIPPING_THRESHOLD = 70000;
-export const SHIPPING_COST = 4900;
+/** Retiro sin cargo en el atelier (dirección de ejemplo del prototipo). */
+export const ATELIER = {
+  address: "Thames 1850, Palermo, CABA",
+  hours: "Lunes a sábado de 8 a 20 h · Domingos de 9 a 14 h",
+};
+
+/** Plazo para pagar un pedido antes de que se cancele (efectivo o transferencia). */
+export const PAYMENT_WINDOW_HOURS = 24;
 
 export const SLOTS_TODAY = ["15 a 18 h", "18 a 20 h"];
 export const SLOTS_OTHER = ["9 a 13 h", "13 a 17 h", "17 a 20 h"];

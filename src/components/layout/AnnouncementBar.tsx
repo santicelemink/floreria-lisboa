@@ -9,7 +9,7 @@ export function AnnouncementBar() {
       <p className="container flex min-h-[40px] flex-wrap items-center justify-center gap-x-1.5 py-2 text-center text-[13px] leading-snug tracking-[0.01em]">
         {remaining > 0 ? (
           <>
-            <span>Pedí en las próximas</span>
+            <span>Pagá en las próximas</span>
             <span
               role="timer"
               aria-label={`Quedan ${formatCountdown(remaining)} para el corte de las 14 horas`}
@@ -17,13 +17,13 @@ export function AnnouncementBar() {
             >
               {formatCountdown(remaining)}
             </span>
-            <span>y lo entregamos hoy en CABA</span>
+            <span>y lo preparamos hoy</span>
           </>
         ) : (
           <span>
-            Pedí ahora y lo entregamos mañana a primera hora
+            Pedí ahora y lo preparamos mañana a primera hora
             <span aria-hidden="true" className="mx-2 text-malva">·</span>
-            Envío sin cargo desde $70.000
+            Envío o retiro a coordinar por WhatsApp
           </span>
         )}
       </p>

@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import type { BouquetConfig, CartItem, DeliveryInfo, PlacedOrder } from "@/types";
+import type { BouquetConfig, CartItem, DeliveryInfo, Order, PaymentStatus } from "@/types";
 import { BARRIOS, SLOTS_OTHER, SLOTS_TODAY } from "@/data/catalog";
 import { sanitizeConfig } from "@/lib/bouquet";
 import { calculatePrice } from "@/lib/pricing";
@@ -11,7 +11,8 @@ interface CartState {
   items: CartItem[];
   isOpen: boolean;
   delivery: DeliveryInfo;
-  lastOrder: PlacedOrder | null;
+  /** Pedidos creados en este dispositivo, como "Mis compras" en Mercado Libre. */
+  orders: Order[];
   /** Se incrementa cada vez que se agrega un ítem: dispara el "pop" del badge. */
   addPulse: number;
   open: () => void;
@@ -23,7 +24,9 @@ interface CartState {
   setDelivery: (partial: Partial<DeliveryInfo>) => void;
   /** Corrige la entrega si quedó desactualizada (pasó el corte, fecha vencida, franja inválida). */
   normalizeDelivery: () => void;
-  placeOrder: (order: PlacedOrder) => void;
+  /** Crea el pedido (pendiente de pago) y vacía el carrito: los ítems pasan al pedido. */
+  createOrder: (order: Order) => void;
+  setPaymentStatus: (number: string, status: PaymentStatus, details?: { methodLabel?: string; installments?: number }) => void;
 }
 
 export function slotsFor(day: DeliveryInfo["day"]) {
@@ -32,7 +35,7 @@ export function slotsFor(day: DeliveryInfo["day"]) {
 
 export function defaultDelivery(): DeliveryInfo {
   const today = isBeforeCutoff();
-  return fixDelivery({ day: today ? "hoy" : "manana", date: null, slot: null, barrio: null });
+  return fixDelivery({ mode: "envio", day: today ? "hoy" : "manana", date: null, slot: null, barrio: null });
 }
 
 export function deliveryDateISO(delivery: DeliveryInfo) {
@@ -43,12 +46,23 @@ export function deliveryDateISO(delivery: DeliveryInfo) {
 
 function fixDelivery(d: DeliveryInfo): DeliveryInfo {
   let next = { ...d };
+  if (next.mode !== "envio" && next.mode !== "retiro") next = { ...next, mode: "envio" };
   if (next.day === "hoy" && !isBeforeCutoff()) next = { ...next, day: "manana", slot: null };
   if (next.day === "otra" && next.date && next.date <= baDateISO(0)) next = { ...next, date: null };
   // La franja siempre tiene un valor válido: la primera disponible por defecto.
   if (!next.slot || !slotsFor(next.day).includes(next.slot)) next = { ...next, slot: slotsFor(next.day)[0] };
   if (next.barrio && !BARRIOS.includes(next.barrio)) next = { ...next, barrio: null };
   return next;
+}
+
+/** Un pedido sin pago aprobado vence pasado su plazo. */
+export function isOrderExpired(order: Order, now = Date.now()) {
+  return order.payment.status !== "aprobado" && now > new Date(order.expiresAt).getTime();
+}
+
+/** Pedidos que todavía esperan un pago (para recordarlo en el carrito). */
+export function openOrders(orders: Order[]) {
+  return orders.filter((o) => o.payment.status !== "aprobado" && !isOrderExpired(o));
 }
 
 const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
@@ -59,7 +73,7 @@ export const useCart = create<CartState>()(
       items: [],
       isOpen: false,
       delivery: defaultDelivery(),
-      lastOrder: null,
+      orders: [],
       addPulse: 0,
       open: () => set({ isOpen: true }),
       close: () => set({ isOpen: false }),
@@ -87,13 +101,26 @@ export const useCart = create<CartState>()(
         }),
       setDelivery: (partial) => set((s) => ({ delivery: fixDelivery({ ...s.delivery, ...partial }) })),
       normalizeDelivery: () => set((s) => ({ delivery: fixDelivery(s.delivery) })),
-      placeOrder: (order) => set({ lastOrder: order, items: [], delivery: { ...defaultDelivery(), barrio: get().delivery.barrio } }),
+      createOrder: (order) =>
+        set((s) => ({
+          orders: [order, ...s.orders].slice(0, 20),
+          items: [],
+          delivery: { ...defaultDelivery(), mode: s.delivery.mode, barrio: s.delivery.barrio },
+        })),
+      setPaymentStatus: (number, status, details) =>
+        set((s) => ({
+          orders: s.orders.map((o) =>
+            o.number === number
+              ? { ...o, payment: { ...o.payment, ...details, status, updatedAt: new Date().toISOString() } }
+              : o,
+          ),
+        })),
     }),
     {
       name: "lisboa-pedido",
-      version: 1,
+      version: 2,
       storage: createJSONStorage(() => safeStorage),
-      partialize: (s) => ({ items: s.items, delivery: s.delivery, lastOrder: s.lastOrder }),
+      partialize: (s) => ({ items: s.items, delivery: s.delivery, orders: s.orders }),
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<CartState>;
         const items = Array.isArray(p.items)
@@ -104,8 +131,12 @@ export const useCart = create<CartState>()(
               return [{ ...raw, config, price: calculatePrice(config) } as CartItem];
             })
           : [];
-        const delivery = p.delivery && typeof p.delivery === "object" ? fixDelivery({ ...current.delivery, ...p.delivery }) : current.delivery;
-        return { ...current, items, delivery, lastOrder: p.lastOrder ?? null };
+        const delivery =
+          p.delivery && typeof p.delivery === "object" ? fixDelivery({ ...current.delivery, ...p.delivery }) : current.delivery;
+        const orders = Array.isArray(p.orders)
+          ? p.orders.filter((o): o is Order => !!o && typeof o.number === "string" && !!o.payment && Array.isArray(o.items))
+          : [];
+        return { ...current, items, delivery, orders };
       },
     },
   ),
