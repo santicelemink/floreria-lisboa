@@ -58,9 +58,9 @@ export const PHOTOS: Record<string, BouquetPhoto> = {
   },
   chiado: {
     slug: "chiado",
-    alt: "Ramo Chiado: peonías, rosas y lisianthus de colores de jardín en una caja sombrerera",
+    alt: "Arreglo Chiado: peonías, rosas y lisianthus en rosa, lavanda y durazno dentro de una caja sombrerera lavanda con moño de satén rosa",
     palette: "jardin",
-    final: false,
+    final: true,
     brief: "Arreglo clásico (11 tallos) de peonías, rosas y lisianthus en rubor, lavanda y manteca, con eucalipto, dentro de una caja sombrerera lavanda pálido con banda de satén rubor y la palabra “Lisboa”.",
   },
   bairro: {
