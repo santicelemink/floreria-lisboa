@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import type { OccasionId } from "@/types";
 import { OCCASIONS } from "@/data/catalog";
-import { PRODUCTS } from "@/data/products";
+import { useCatalog } from "@/lib/catalogData";
 import { Chip } from "@/components/ui/choice";
 import { SectionHeading } from "@/components/common/Section";
 import { ProductCard } from "@/components/common/ProductCard";
@@ -11,13 +11,14 @@ import { useProductActions } from "@/hooks/useProductActions";
 export function Collection({ asPage = false }: { asPage?: boolean }) {
   const [filter, setFilter] = useState<OccasionId | "todas">("todas");
   const { customize, add } = useProductActions();
+  const { products } = useCatalog();
   const visible = useMemo(
-    () => (filter === "todas" ? PRODUCTS : PRODUCTS.filter((p) => p.occasions.includes(filter))),
-    [filter],
+    () => (filter === "todas" ? products : products.filter((p) => p.occasions.includes(filter))),
+    [filter, products],
   );
   const counts = useMemo(
-    () => Object.fromEntries(OCCASIONS.map((o) => [o.id, PRODUCTS.filter((p) => p.occasions.includes(o.id)).length])),
-    [],
+    () => Object.fromEntries(OCCASIONS.map((o) => [o.id, products.filter((p) => p.occasions.includes(o.id)).length])),
+    [products],
   );
 
   return (

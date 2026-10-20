@@ -7,6 +7,7 @@ import { useAnimatedNumber } from "@/hooks/useAnimatedNumber";
 import { configsEqual, describeBouquet, encodeConfig, flowersPhrase } from "@/lib/bouquet";
 import { capitalize, formatPrice } from "@/lib/format";
 import { calculatePrice } from "@/lib/pricing";
+import { useCatalog } from "@/lib/catalogData";
 import { cn } from "@/lib/utils";
 import { useConfigurator } from "@/store/configurator";
 
@@ -39,7 +40,7 @@ export function PreviewDisclaimer({ className }: { className?: string }) {
 /** Escenario cuadrado con fondo radial de la paleta y el ramo en vivo. */
 export function PreviewStage({ className }: { className?: string }) {
   const config = useConfigurator((s) => s.config);
-  const price = calculatePrice(config);
+  const price = calculatePrice(config, useCatalog());
   return (
     <div
       className={cn("relative overflow-hidden rounded-[22px] border border-linea transition-[background] duration-500 ease-atelier", className)}
@@ -80,7 +81,7 @@ async function copyToClipboard(text: string) {
 
 export function PreviewDetails({ className }: { className?: string }) {
   const { config, savedDesign, surprise, reset, saveDesign } = useConfigurator();
-  const price = calculatePrice(config);
+  const price = calculatePrice(config, useCatalog());
   const isSaved = savedDesign ? configsEqual(savedDesign, config) : false;
 
   const actions = [

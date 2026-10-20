@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { usePresentation } from "@/store/presentation";
 
 export function PresentationBanner() {
@@ -13,6 +14,13 @@ export function PresentationBanner() {
         <p className="mt-3 max-w-[720px] text-[15px] leading-relaxed text-marfil/80">
           Cada recuadro punteado explica la técnica de UX aplicada y qué le aporta al negocio. Desactivalo abajo a la
           izquierda para ver el sitio como lo vería un cliente.
+        </p>
+        <p className="mt-3 text-[15px] text-marfil/80">
+          Los dueños actualizan fotos, flores de la semana, precios y pedidos desde el{" "}
+          <Link to="/admin" target="_blank" className="rounded-sm text-oro underline underline-offset-4 hover:text-marfil">
+            panel de la florería
+          </Link>
+          .
         </p>
       </div>
     </section>

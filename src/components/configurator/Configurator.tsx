@@ -9,6 +9,7 @@ import { decodeConfig } from "@/lib/bouquet";
 import { allComposerUrls, preloadAssets } from "@/lib/composerAssets";
 import { formatPrice } from "@/lib/format";
 import { calculatePrice } from "@/lib/pricing";
+import { unavailableFlowers, unavailableMessage, useCatalog } from "@/lib/catalogData";
 import { prefersReducedMotion, scrollToId, stripSearchParam } from "@/lib/utils";
 import { STEP_COUNT, useConfigurator } from "@/store/configurator";
 import { useUI } from "@/store/ui";
@@ -47,7 +48,9 @@ export function Configurator({ variant = "section" }: { variant?: "section" | "p
   const setBottomBar = useUI((s) => s.setBottomBar);
   const panelRef = useRef<HTMLDivElement>(null);
   const firstRender = useRef(true);
-  const price = calculatePrice(config);
+  const catalog = useCatalog();
+  const price = calculatePrice(config, catalog);
+  const outOfStock = unavailableMessage(unavailableFlowers(config, catalog));
   const Body = STEP_BODIES[step];
   const isLast = step === STEP_COUNT - 1;
 
@@ -138,6 +141,12 @@ export function Configurator({ variant = "section" }: { variant?: "section" | "p
             <div key={step} className="mt-6 animate-step-in">
               <Body />
             </div>
+
+            {isLast && outOfStock && (
+              <p className="mt-6 text-[13px] text-error" role="alert">
+                {outOfStock}
+              </p>
+            )}
 
             {/* Navegación: fija abajo en mobile, al pie del panel en desktop */}
             <div className="sticky bottom-0 z-20 -mx-4 mt-8 border-t border-linea bg-marfil/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6 lg:static lg:mx-0 lg:mt-10 lg:bg-transparent lg:px-0 lg:pb-0 lg:pt-6 lg:backdrop-blur-none">

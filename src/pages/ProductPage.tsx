@@ -4,7 +4,8 @@ import { ChevronLeft } from "lucide-react";
 import type { SizeId } from "@/types";
 import { OCCASION_BY_ID, SIZES } from "@/data/catalog";
 import { CARE_TIPS, SHIPPING_INFO } from "@/data/content";
-import { PRODUCTS, PRODUCT_BY_SLUG } from "@/data/products";
+import { PRODUCT_BY_SLUG } from "@/data/products";
+import { unavailableFlowers, unavailableMessage, useCatalog } from "@/lib/catalogData";
 import { BouquetPhoto } from "@/components/bouquet/BouquetPhoto";
 import { ProductCard } from "@/components/common/ProductCard";
 import { Button } from "@/components/ui/button";
@@ -20,7 +21,9 @@ import { NotFoundPage } from "./NotFoundPage";
 
 export function ProductPage() {
   const { slug = "" } = useParams();
-  const product = PRODUCT_BY_SLUG[slug];
+  const catalog = useCatalog();
+  const found = catalog.productBySlug[slug];
+  const product = found && !found.hidden ? found : undefined;
   const location = useLocation();
   const [size, setSize] = useState<SizeId>(product?.config.size ?? "clasico");
   const { customize, add } = useProductActions();
@@ -28,19 +31,22 @@ export function ProductPage() {
   useDocumentTitle(product?.name);
 
   useEffect(() => {
-    if (product) setSize(product.config.size);
-  }, [product]);
+    const p = PRODUCT_BY_SLUG[slug];
+    if (p) setSize(p.config.size);
+  }, [slug]);
 
   useEffect(() => {
     if (location.hash === "#cuidados") setOpenItems((items) => (items.includes("cuidados") ? items : [...items, "cuidados"]));
   }, [location.hash]);
 
-  const config = useMemo(() => (product ? { ...product.config, size } : null), [product, size]);
+  const baseConfig = product?.config;
+  const config = useMemo(() => (baseConfig ? { ...baseConfig, size } : null), [baseConfig, size]);
   if (!product || !config) return <NotFoundPage />;
 
-  const price = calculatePrice(config);
+  const price = calculatePrice(config, catalog);
   const lines = summaryLines(config);
-  const others = PRODUCTS.filter((p) => p.slug !== product.slug).slice(0, 3);
+  const others = catalog.products.filter((p) => p.slug !== product.slug).slice(0, 3);
+  const missing = unavailableMessage(unavailableFlowers(config, catalog));
 
   return (
     <>
@@ -54,6 +60,7 @@ export function ProductPage() {
             <div className="relative">
               <BouquetPhoto
                 slug={product.slug}
+                src={product.photo}
                 priority
                 fallback={product.config}
                 className="aspect-[4/5] rounded-panel border border-linea"
@@ -78,7 +85,7 @@ export function ProductPage() {
                   <OptionCard key={s.id} selected={size === s.id} onClick={() => setSize(s.id)} className="pr-10">
                     <span className="block font-serif text-[20px] leading-tight">{s.label}</span>
                     <span className="mt-0.5 block text-[13px] text-gris-texto">{s.stems} tallos</span>
-                    <span className="tabular mt-2 block text-[14px]">{formatPrice(calculatePrice({ ...product.config, size: s.id }))}</span>
+                    <span className="tabular mt-2 block text-[14px]">{formatPrice(calculatePrice({ ...product.config, size: s.id }, catalog))}</span>
                   </OptionCard>
                 ))}
               </div>
@@ -90,13 +97,18 @@ export function ProductPage() {
             </dl>
 
             <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-              <Button className="sm:flex-1" onClick={() => add(product, config)}>
+              <Button className="sm:flex-1" onClick={() => add(product, config)} disabled={!!missing}>
                 Agregar al pedido · {formatPrice(price)}
               </Button>
               <Button variant="secondary" className="sm:flex-1" onClick={() => customize(product, config)}>
                 Personalizar este diseño
               </Button>
             </div>
+            {missing && (
+              <p className="mt-3 text-[13px] text-error" role="status">
+                {missing.replace("Cambiá esa variedad en el paso de las flores.", "Podés personalizarlo con otra variedad.")}
+              </p>
+            )}
             <p className="mt-3 text-[13px] text-gris-texto">La tarjeta con tu mensaje la escribís al personalizar o en el pedido por WhatsApp.</p>
 
             <h2 className="sr-only">Cuidados, envío y retiro</h2>

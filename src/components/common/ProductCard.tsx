@@ -4,6 +4,8 @@ import { BouquetPhoto } from "@/components/bouquet/BouquetPhoto";
 import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/format";
 import { calculatePrice } from "@/lib/pricing";
+import { unavailableFlowers, useCatalog } from "@/lib/catalogData";
+import { FLOWER_BY_ID } from "@/data/catalog";
 
 export function ProductCard({
   product,
@@ -12,20 +14,28 @@ export function ProductCard({
   headingLevel: Heading = "h3",
 }: {
   headingLevel?: "h2" | "h3";
-  product: Product;
+  product: Product & { photo?: string };
   onCustomize: () => void;
   onAdd: () => void;
 }) {
-  const price = calculatePrice(product.config);
+  const catalog = useCatalog();
+  const price = calculatePrice(product.config, catalog);
+  const missing = unavailableFlowers(product.config, catalog);
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-card border border-linea bg-marfil transition-[transform,box-shadow] duration-300 ease-atelier hover:-translate-y-1 hover:shadow-lift">
       <Link to={`/producto/${product.slug}`} className="relative block overflow-hidden rounded-t-card" aria-label={`Ver ${product.name}`}>
         <BouquetPhoto
           slug={product.slug}
+          src={product.photo}
           fallback={product.config}
           className="aspect-[4/5]"
           imgClassName="transition-[opacity,transform] duration-500 ease-atelier group-hover:scale-[1.04]"
         />
+        {missing.length > 0 && (
+          <span className="absolute bottom-3 left-3 right-3 rounded-full bg-papel/95 px-3 py-1.5 text-center text-[12px] text-error backdrop-blur">
+            Sin {missing.map((f) => FLOWER_BY_ID[f].plural).join(" ni ")} esta semana
+          </span>
+        )}
         {product.tag && (
           <span className="absolute left-3 top-3 rounded-full bg-papel/90 px-3 py-1 text-[12px] tracking-[0.02em] text-tinta backdrop-blur">
             {product.tag}
@@ -46,7 +56,7 @@ export function ProductCard({
           <Button variant="secondary" size="xs" onClick={onCustomize} aria-label={`Personalizar ${product.name}`}>
             Personalizar
           </Button>
-          <Button size="xs" onClick={onAdd} aria-label={`Agregar ${product.name} al pedido`}>
+          <Button size="xs" onClick={onAdd} disabled={missing.length > 0} aria-label={`Agregar ${product.name} al pedido`}>
             Agregar
           </Button>
         </div>

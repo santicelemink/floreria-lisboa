@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import type { Product } from "@/data/products";
 import type { BouquetConfig } from "@/types";
 import { scrollToId } from "@/lib/utils";
+import { unavailableFlowers, unavailableMessage } from "@/lib/catalogData";
 import { useCart } from "@/store/cart";
 import { useConfigurator } from "@/store/configurator";
 
@@ -27,6 +28,11 @@ export function useProductActions() {
 
   const add = useCallback(
     (product: Product, config: BouquetConfig = product.config) => {
+      const missing = unavailableMessage(unavailableFlowers(config));
+      if (missing) {
+        toast(missing.replace("Cambiá esa variedad en el paso de las flores.", "Podés personalizarlo con otra variedad."));
+        return;
+      }
       addItem({ name: product.name, config, productSlug: product.slug });
       openCart();
       toast(`${product.name} agregado al pedido`);

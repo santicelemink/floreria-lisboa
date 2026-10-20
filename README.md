@@ -119,6 +119,7 @@ en `COMPOSER_COLOR_HEX`, los dos en `src/data/catalog.ts`. Para afinar cómo se 
 | `/pago/:numero` | Pago simulado (prototipo). En producción, acá se abre Mercado Pago |
 | `/pedido/:numero` | Estado del pedido según el pago: aprobado, pendiente, sin pagar, rechazado o vencido |
 | `/pedido-confirmado` | Número de pedido y resumen |
+| `/admin` | Panel de la florería: pedidos, diseños, flores, precios y datos del negocio (`noindex`, enlazado desde el pie como “Acceso florería”) |
 | `/dev/composer` | Uso interno: revisión de imágenes del compositor y fotos (no enlazada, `noindex`) |
 
 Links útiles para la presentación:
@@ -140,7 +141,8 @@ src/
   data/             Catálogo (ocasiones, paletas, flores, tamaños...), productos y textos
   lib/              Precios, horario de Buenos Aires, formato, almacenamiento seguro
   services/         Mocks async: orders, payments, reminders, subscriptions
-  store/            Zustand: carrito, configurador, modo presentación
+  pages/admin/      Secciones del panel de la florería
+  store/            Zustand: carrito y pedidos, catálogo editable, configurador, modo presentación
 ```
 
 ## Pedidos, pagos y entrega
@@ -164,6 +166,25 @@ En el prototipo el paso por Mercado Pago está simulado en `/pago/:numero` (con 
 4. La página del pedido consulta el estado al backend: nunca confía en el parámetro de la URL de vuelta.
 5. Al aprobarse, el backend avisa a la florería (por ejemplo, un WhatsApp o un email interno) con el pedido completo.
 
+## Panel de la florería (`/admin`)
+
+Pensado para usar desde el celular. Tiene cinco secciones:
+
+- **Pedidos:** los pedidos pagos para preparar, los que esperan el pago y los entregados. Cada pedido muestra el cliente, la entrega, el ramo y la tarjeta. Se marca *Nuevo → En preparación → Foto enviada → Entregado*, y el cliente lo ve en la página de su pedido. Tiene un botón para escribirle por WhatsApp con un mensaje según el estado.
+- **Diseños:** cambiar la foto (se recorta sola a 4:5, 640 × 800), el nombre, la descripción y la etiqueta, ocultar un diseño y cambiar el orden en la colección.
+- **Flores:** marcar qué variedades no hay esta semana. Dejan de ofrecerse en el configurador y los diseños que las llevan no se pueden agregar al pedido, ni siquiera si ya estaban en un carrito. También se edita el recargo de cada variedad.
+- **Precios:** tamaños, envoltorios, tarjetas y extras. Se aplica al instante en todo el sitio, también en los carritos abiertos; los pedidos ya hechos conservan su precio.
+- **Negocio:** el WhatsApp de la florería y la dirección de retiro.
+
+**En el prototipo** los cambios se guardan en el navegador (`localStorage`, clave `lisboa-catalogo`) y solo se guarda lo que se cambió: lo demás sale de `src/data`. El sitio abierto en otra pestaña se actualiza solo (evento `storage`). “Restablecer el catálogo de la demo” vuelve todo a los valores de fábrica. No tiene contraseña: es para mostrar cómo funciona.
+
+**En producción** (Supabase):
+
+1. **Login** con Supabase Auth (email y contraseña o link mágico) solo para los dueños; `/admin` redirige al login si no hay sesión.
+2. **Tablas** `catalogo_cambios` (una fila con el mismo formato que el store `useCatalogStore`, o una tabla por grupo si se prefiere), `productos` y `pedidos`. Políticas RLS: lectura pública del catálogo, escritura solo para usuarios de la florería; los pedidos solo los lee la florería y cada cliente el suyo por número.
+3. **Fotos** a Supabase Storage (bucket público `ramos`) en lugar de data URLs; en el store se guarda la URL.
+4. **Tiempo real:** el sitio se suscribe a los cambios con Supabase Realtime y llama a `useCatalogStore.setState(...)`, igual que hoy lo hace `CrossTabSync` en `src/App.tsx`. Las pantallas no cambian.
+
 ## Conectar backend más adelante
 
 Los servicios de `src/services` devuelven promesas con éxito simulado. Para producción
@@ -177,4 +198,4 @@ la UI no cambia.
 - Toda la lógica de horarios usa `America/Argentina/Buenos_Aires`.
 - Se persisten en `localStorage` (con try/catch) el pedido, el diseño guardado y el modo presentación.
 - Para cumplir contraste AA, el texto secundario usa `gris-texto` (#6B6264) y el texto chico en acento usa `malva-oscuro`; el gris #7D7476 y el malva #A8707C quedan para íconos, bordes, placeholders y títulos grandes.
-- El número de WhatsApp es de ejemplo: se cambia en `src/data/catalog.ts` (`WHATSAPP_NUMBER`).
+- El número de WhatsApp es de ejemplo: se cambia desde el panel (`/admin`, sección Negocio) o de fábrica en `src/data/catalog.ts` (`WHATSAPP_NUMBER`).

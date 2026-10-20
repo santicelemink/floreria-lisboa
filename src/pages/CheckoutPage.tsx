@@ -10,7 +10,8 @@ import { Input, Textarea } from "@/components/ui/input";
 import { CartItemRow } from "@/components/cart/CartItemRow";
 import { DeliveryPicker, deliveryProblem, type DeliveryProblem } from "@/components/cart/DeliveryPicker";
 import { PaymentBadges } from "@/components/cart/PaymentBadges";
-import { ATELIER, PAYMENT_WINDOW_HOURS } from "@/data/catalog";
+import { PAYMENT_WINDOW_HOURS } from "@/data/catalog";
+import { useCatalog } from "@/lib/catalogData";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { isValidArgentinePhone } from "@/lib/phone";
 import { cartTotal } from "@/lib/pricing";
@@ -81,6 +82,7 @@ export function CheckoutPage() {
   const [problem, setProblem] = useState<DeliveryProblem | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const isPickup = delivery.mode === "retiro";
+  const { business } = useCatalog();
 
   const {
     register,
@@ -285,7 +287,7 @@ export function CheckoutPage() {
               {!isPickup && delivery.barrio ? ` · ${delivery.barrio}` : ""}
             </p>
             <p className="mt-1 text-[13px] text-gris-texto">
-              {isPickup ? ATELIER.address : "Día y horario a confirmar por WhatsApp."}
+              {isPickup ? business.address : "Día y horario a confirmar por WhatsApp."}
             </p>
           </div>
           <dl className="mt-4 space-y-1.5 border-t border-linea pt-4 text-[14px]">

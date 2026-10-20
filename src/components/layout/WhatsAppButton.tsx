@@ -1,10 +1,11 @@
 import { MessageCircle } from "lucide-react";
-import { whatsappLink } from "@/data/catalog";
+import { useCatalog, whatsappLink } from "@/lib/catalogData";
 import { useUI } from "@/store/ui";
 import { cn } from "@/lib/utils";
 
 export function WhatsAppButton() {
   const lifted = useUI((s) => s.bottomBar);
+  useCatalog();
   return (
     <a
       href={whatsappLink("Hola, quería hacer una consulta sobre un ramo.")}

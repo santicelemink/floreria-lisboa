@@ -4,6 +4,7 @@ import { BouquetComposer } from "@/components/bouquet/BouquetComposer";
 import { BouquetPhoto } from "@/components/bouquet/BouquetPhoto";
 import { PHOTOS } from "@/data/photos";
 import { PRODUCT_BY_SLUG } from "@/data/products";
+import { getCatalog } from "@/lib/catalogData";
 import { describeBouquet, summaryLines } from "@/lib/bouquet";
 import { formatPrice } from "@/lib/format";
 
@@ -19,7 +20,15 @@ function matchesProductPhoto(item: CartItem) {
 export function CartThumb({ item, className = "h-[84px] w-[70px]" }: { item: CartItem; className?: string }) {
   const frame = `${className} shrink-0 overflow-hidden rounded-[14px] border border-linea`;
   if (matchesProductPhoto(item)) {
-    return <BouquetPhoto slug={item.productSlug!} fallback={item.config} alt={describeBouquet(item.config)} className={frame} />;
+    return (
+      <BouquetPhoto
+        slug={item.productSlug!}
+        src={getCatalog().productBySlug[item.productSlug!]?.photo}
+        fallback={item.config}
+        alt={describeBouquet(item.config)}
+        className={frame}
+      />
+    );
   }
   return (
     <div className={frame} style={{ background: paletteBackground(item.config.palette) }}>
@@ -28,7 +37,7 @@ export function CartThumb({ item, className = "h-[84px] w-[70px]" }: { item: Car
   );
 }
 
-export function CartItemRow({ item, onRemove }: { item: CartItem; onRemove?: () => void }) {
+export function CartItemRow({ item, onRemove, warning }: { item: CartItem; onRemove?: () => void; warning?: string | null }) {
   const lines = summaryLines(item.config);
   return (
     <li className="flex gap-4 py-5">
@@ -41,6 +50,7 @@ export function CartItemRow({ item, onRemove }: { item: CartItem; onRemove?: () 
         <p className="mt-1 text-[13px] leading-snug text-gris-texto">{lines.main}</p>
         <p className="mt-0.5 text-[13px] leading-snug text-gris-texto">{lines.wrap}</p>
         <p className="mt-0.5 text-[13px] leading-snug text-gris-texto">{lines.card}</p>
+        {warning && <p className="mt-1.5 text-[13px] leading-snug text-error">{warning}</p>}
         {onRemove && (
           <button
             type="button"

@@ -23,17 +23,17 @@ const HEADER: Record<View, { icon: LucideIcon; tone: string; kicker: string }> =
 
 function Timeline({ order, view }: { order: Order; view: View }) {
   const paid = view === "aprobado";
+  // Cuánto avanzó la florería (lo marca desde /admin): 0 nuevo, 1 preparando, 2 foto enviada, 3 entregado.
+  const progress = paid ? ["nuevo", "preparando", "foto", "entregado"].indexOf(order.fulfillment ?? "nuevo") : -1;
+  const done = [true, paid, progress >= 2, progress >= 2, progress >= 3];
+  const currentIndex = done.indexOf(false);
   const steps = [
-    { icon: PackageCheck, label: "Pedido creado", done: true },
-    { icon: Check, label: paid ? "Pago aprobado" : "Pago", done: paid, current: !paid },
-    { icon: Flower2, label: "Lo preparamos", done: false, current: paid },
-    { icon: Camera, label: "Foto por WhatsApp", done: false },
-    {
-      icon: MessageCircle,
-      label: order.delivery.mode === "retiro" ? "Retiro coordinado" : "Envío coordinado",
-      done: false,
-    },
-  ];
+    { icon: PackageCheck, label: "Pedido creado" },
+    { icon: Check, label: paid ? "Pago aprobado" : "Pago" },
+    { icon: Flower2, label: progress >= 2 ? "Preparado" : "Lo preparamos" },
+    { icon: Camera, label: "Foto por WhatsApp" },
+    { icon: MessageCircle, label: order.delivery.mode === "retiro" ? "Retirado" : "Entregado" },
+  ].map((step, i) => ({ ...step, done: done[i], current: i === currentIndex }));
   return (
     <ol className="mx-auto mt-10 grid max-w-[680px] grid-cols-5 gap-1.5" aria-label="Estado del pedido">
       {steps.map(({ icon: Icon, label, done, current }) => (

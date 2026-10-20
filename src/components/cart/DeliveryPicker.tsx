@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useId, useState } from "react";
 import { CalendarDays, MessageCircle, Store, Truck } from "lucide-react";
-import { ATELIER, BARRIOS } from "@/data/catalog";
+import { BARRIOS } from "@/data/catalog";
+import { useCatalog } from "@/lib/catalogData";
 import { Chip } from "@/components/ui/choice";
 import {
   Popover,
@@ -49,6 +50,7 @@ export function DeliveryPicker({
 }) {
   const barrioError = problem?.field === "barrio" ? problem.message : null;
   const delivery = useCart((s) => s.delivery);
+  const { business } = useCatalog();
   const setDelivery = useCart((s) => s.setDelivery);
   const normalize = useCart((s) => s.normalizeDelivery);
   const now = useNow(15000);
@@ -95,7 +97,7 @@ export function DeliveryPicker({
           <MessageCircle className="mt-0.5 h-4 w-4 shrink-0 text-malva-profundo" strokeWidth={1.5} aria-hidden="true" />
           {isPickup ? (
             <span>
-              Retirás sin cargo en {ATELIER.address}. Te escribimos por WhatsApp cuando esté listo.
+              Retirás sin cargo en {business.address}. Te escribimos por WhatsApp cuando esté listo.
             </span>
           ) : (
             <span>

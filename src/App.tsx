@@ -10,6 +10,8 @@ import { CartDrawer } from "@/components/cart/CartDrawer";
 import { PresentationBanner } from "@/components/pitch/PresentationBanner";
 import { PresentationToggle } from "@/components/pitch/PresentationToggle";
 import { usePresentation } from "@/store/presentation";
+import { useCatalogStore } from "@/store/catalog";
+import { useCart } from "@/store/cart";
 import { prefersReducedMotion, stripSearchParam } from "@/lib/utils";
 import { HomePage } from "@/pages/HomePage";
 import { CreatePage } from "@/pages/CreatePage";
@@ -23,6 +25,7 @@ const CheckoutPage = lazy(() => import("@/pages/CheckoutPage").then((m) => ({ de
 const DevComposerPage = lazy(() => import("@/pages/DevComposerPage").then((m) => ({ default: m.DevComposerPage })));
 const PaymentPage = lazy(() => import("@/pages/PaymentPage").then((m) => ({ default: m.PaymentPage })));
 const OrderStatusPage = lazy(() => import("@/pages/OrderStatusPage").then((m) => ({ default: m.OrderStatusPage })));
+const AdminPage = lazy(() => import("@/pages/AdminPage").then((m) => ({ default: m.AdminPage })));
 const LatestOrderRedirect = lazy(() =>
   import("@/pages/OrderStatusPage").then((m) => ({ default: m.LatestOrderRedirect })),
 );
@@ -40,6 +43,22 @@ function ScrollManager() {
     }
     window.scrollTo({ top: 0, behavior: "auto" });
   }, [pathname, hash]);
+  return null;
+}
+
+/**
+ * Sincroniza entre pestañas: si en /admin cambian un precio, una foto o el estado de un pedido,
+ * el sitio abierto en otra pestaña se actualiza solo. (En producción lo hace Supabase Realtime.)
+ */
+function CrossTabSync() {
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === "lisboa-catalogo") void useCatalogStore.persist.rehydrate();
+      if (e.key === "lisboa-pedido") void useCart.persist.rehydrate();
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
   return null;
 }
 
@@ -89,8 +108,17 @@ function Layout() {
 export default function App() {
   return (
     <BrowserRouter>
+      <CrossTabSync />
       <TooltipProvider delayDuration={150}>
         <Routes>
+          <Route
+            path="admin"
+            element={
+              <Suspense fallback={<div className="min-h-screen bg-marfil" aria-busy="true" />}>
+                <AdminPage />
+              </Suspense>
+            }
+          />
           <Route element={<Layout />}>
             <Route index element={<HomePage />} />
             <Route path="crear" element={<CreatePage />} />

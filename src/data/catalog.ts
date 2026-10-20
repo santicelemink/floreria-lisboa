@@ -294,6 +294,4 @@ export const SLOTS_TODAY = ["15 a 18 h", "18 a 20 h"];
 export const SLOTS_OTHER = ["9 a 13 h", "13 a 17 h", "17 a 20 h"];
 
 export const WHATSAPP_NUMBER = "5491100000000"; // Número de ejemplo del prototipo
-export function whatsappLink(text: string) {
-  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`;
-}
+// El link de WhatsApp vive en lib/catalogData.ts: usa el número que se edita en /admin.

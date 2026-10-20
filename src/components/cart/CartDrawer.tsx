@@ -8,6 +8,8 @@ import { PitchNote } from "@/components/pitch/PitchNote";
 import { openOrders, useCart } from "@/store/cart";
 import { cartTotal } from "@/lib/pricing";
 import { formatPrice } from "@/lib/format";
+import { unavailableFlowers, useCatalog } from "@/lib/catalogData";
+import { FLOWER_BY_ID } from "@/data/catalog";
 import { CartItemRow } from "./CartItemRow";
 import { DeliveryPicker, deliveryProblem, type DeliveryProblem } from "./DeliveryPicker";
 import { PaymentBadges } from "./PaymentBadges";
@@ -17,6 +19,12 @@ export function CartDrawer() {
   const navigate = useNavigate();
   const total = cartTotal(items.map((i) => i.price));
   const [problem, setProblem] = useState<DeliveryProblem | null>(null);
+  const [stockProblem, setStockProblem] = useState<string | null>(null);
+  const catalog = useCatalog();
+  const outOfStockLabel = (item: (typeof items)[number]) => {
+    const missing = unavailableFlowers(item.config, catalog);
+    return missing.length ? `Sin ${missing.map((f) => FLOWER_BY_ID[f].plural).join(" ni ")} esta semana` : null;
+  };
   const pending = openOrders(orders)[0];
 
   // El aviso desaparece apenas se corrige el dato que faltaba.
@@ -33,6 +41,11 @@ export function CartDrawer() {
   };
 
   const handleContinue = () => {
+    if (items.some((i) => outOfStockLabel(i))) {
+      setStockProblem("Hay un ramo con flores que no tenemos esta semana. Quitalo o personalizalo con otra variedad.");
+      return;
+    }
+    setStockProblem(null);
     const issue = deliveryProblem(delivery);
     if (issue) {
       setProblem(issue);
@@ -91,7 +104,12 @@ export function CartDrawer() {
               <PitchNote n={8} className="mt-5" />
               <ul className="divide-y divide-linea">
                 {items.map((item) => (
-                  <CartItemRow key={item.id} item={item} onRemove={() => handleRemove(item.id)} />
+                  <CartItemRow
+                    key={item.id}
+                    item={item}
+                    onRemove={() => handleRemove(item.id)}
+                    warning={outOfStockLabel(item)}
+                  />
                 ))}
               </ul>
               <section aria-labelledby="entrega-titulo" className="border-t border-linea py-6">
@@ -122,9 +140,9 @@ export function CartDrawer() {
                 </div>
               </dl>
               <PaymentBadges className="mt-4" />
-              {problem && (
+              {(stockProblem || problem) && (
                 <p className="mt-4 text-[13px] text-error" role="alert">
-                  {problem.message}
+                  {stockProblem ?? problem?.message}
                 </p>
               )}
               <Button className="mt-4 w-full" onClick={handleContinue}>

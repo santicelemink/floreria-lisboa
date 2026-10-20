@@ -1,10 +1,11 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import type { BouquetConfig, CartItem, DeliveryInfo, Order, PaymentStatus } from "@/types";
+import type { BouquetConfig, CartItem, DeliveryInfo, Fulfillment, Order, PaymentStatus } from "@/types";
 import { BARRIOS, SLOTS_OTHER, SLOTS_TODAY } from "@/data/catalog";
 import { sanitizeConfig } from "@/lib/bouquet";
 import { calculatePrice } from "@/lib/pricing";
 import { safeStorage } from "@/lib/storage";
+import { useCatalogStore } from "./catalog";
 import { baDateISO, isBeforeCutoff } from "@/lib/time";
 
 interface CartState {
@@ -27,6 +28,7 @@ interface CartState {
   /** Crea el pedido (pendiente de pago) y vacía el carrito: los ítems pasan al pedido. */
   createOrder: (order: Order) => void;
   setPaymentStatus: (number: string, status: PaymentStatus, details?: { methodLabel?: string; installments?: number }) => void;
+  setFulfillment: (number: string, fulfillment: Fulfillment) => void;
 }
 
 export function slotsFor(day: DeliveryInfo["day"]) {
@@ -107,6 +109,8 @@ export const useCart = create<CartState>()(
           items: [],
           delivery: { ...defaultDelivery(), mode: s.delivery.mode, barrio: s.delivery.barrio },
         })),
+      setFulfillment: (number, fulfillment) =>
+        set((s) => ({ orders: s.orders.map((o) => (o.number === number ? { ...o, fulfillment } : o)) })),
       setPaymentStatus: (number, status, details) =>
         set((s) => ({
           orders: s.orders.map((o) =>
@@ -141,3 +145,8 @@ export const useCart = create<CartState>()(
     },
   ),
 );
+
+// Si la florería cambia precios en /admin, el carrito se actualiza (los pedidos ya creados no).
+useCatalogStore.subscribe(() => {
+  useCart.setState((s) => ({ items: s.items.map((i) => ({ ...i, price: calculatePrice(i.config) })) }));
+});

@@ -3,9 +3,6 @@ import { Baby, Cake, CalendarHeart, Feather, HandHeart, Heart, Sun, type LucideI
 import { toast } from "sonner";
 import type { OccasionId } from "@/types";
 import {
-  CARD_DESIGNS,
-  EXTRAS,
-  FLOWERS,
   FONTS,
   MAX_FLOWERS,
   MESSAGE_MAX,
@@ -15,8 +12,6 @@ import {
   PALETTE_BY_ID,
   RIBBONS,
   RIBBON_BY_ID,
-  SIZES,
-  WRAPS,
 } from "@/data/catalog";
 import { Chip, OptionCard } from "@/components/ui/choice";
 import { Switch } from "@/components/ui/switch";
@@ -25,6 +20,7 @@ import { BouquetComposer } from "@/components/bouquet/BouquetComposer";
 import { FlowerIcon } from "@/components/bouquet/flowers";
 import { useConfigurator } from "@/store/configurator";
 import { calculatePrice } from "@/lib/pricing";
+import { unavailableFlowers, unavailableMessage, useCatalog } from "@/lib/catalogData";
 import { formatPrice } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { CardPreview } from "./CardPreview";
@@ -119,6 +115,8 @@ export function StepFlowers() {
   const { flowers, palette } = useConfigurator((s) => s.config);
   const toggleFlower = useConfigurator((s) => s.toggleFlower);
   const [notice, setNotice] = useState<string | null>(null);
+  const catalog = useCatalog();
+  const selectedUnavailable = unavailableFlowers({ flowers }, catalog);
   const colors = PALETTE_BY_ID[palette].colors;
   const noticeId = useId();
   return (
@@ -128,24 +126,35 @@ export function StepFlowers() {
           <span className="tabular text-tinta">{flowers.length}</span> de {MAX_FLOWERS} variedades elegidas
         </p>
         <p id={noticeId} aria-live="polite" className="min-h-[20px] text-[13px] text-error">
-          {notice}
+          {notice ?? (selectedUnavailable.length ? unavailableMessage(selectedUnavailable)?.replace(" en el paso de las flores", "") : null)}
         </p>
       </div>
       <div role="group" aria-label="Flores" aria-describedby={noticeId} className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        {FLOWERS.map((f) => {
+        {catalog.flowers.map((f) => {
           const selected = flowers.includes(f.id);
           const atMax = !selected && flowers.length >= MAX_FLOWERS;
+          const outOfStock = !f.available;
           return (
             <OptionCard
               key={f.id}
               selected={selected}
+              aria-disabled={outOfStock && !selected ? true : undefined}
               onClick={() => {
+                if (outOfStock && !selected) {
+                  setNotice(`Esta semana no tenemos ${f.plural}. Elegí otra variedad.`);
+                  return;
+                }
                 const result = toggleFlower(f.id);
                 if (result === "max") setNotice("Podés combinar hasta tres variedades. Quitá una para sumar otra.");
                 else if (result === "min") setNotice("Elegí al menos una variedad.");
                 else setNotice(null);
               }}
-              className={cn("flex flex-col gap-3 pt-4", atMax && "opacity-70")}
+              className={cn(
+                "flex flex-col gap-3 pt-4",
+                atMax && "opacity-70",
+                outOfStock && !selected && "cursor-not-allowed opacity-55 hover:border-linea hover:bg-marfil",
+                outOfStock && selected && "border-error",
+              )}
             >
               <span className="flex items-start justify-between">
                 <FlowerIcon flower={f.id} colors={colors} className="h-14 w-14" />
@@ -155,7 +164,11 @@ export function StepFlowers() {
                 <span className="mt-0.5 block text-[13px] leading-snug text-gris-texto">{f.description}</span>
                 <span className="mt-2 flex flex-wrap items-center gap-1.5 text-[13px]">
                   <span className="tabular text-tinta">{surchargeLabel(f.surcharge, "+$0")}</span>
-                  {f.badge && <span className="rounded-full bg-manteca px-2 py-0.5 text-[12px] text-tinta">{f.badge}</span>}
+                  {outOfStock ? (
+                    <span className="rounded-full bg-rubor px-2 py-0.5 text-[12px] text-tinta">Sin stock esta semana</span>
+                  ) : (
+                    f.badge && <span className="rounded-full bg-manteca px-2 py-0.5 text-[12px] text-tinta">{f.badge}</span>
+                  )}
                 </span>
               </span>
             </OptionCard>
@@ -168,11 +181,12 @@ export function StepFlowers() {
 
 export function StepSize() {
   const config = useConfigurator((s) => s.config);
+  const catalog = useCatalog();
   const update = useConfigurator((s) => s.update);
   return (
     <div role="group" aria-label="Tamaño" className="flex flex-col gap-3">
-      {SIZES.map((s) => {
-        const price = calculatePrice({ ...config, size: s.id });
+      {catalog.sizes.map((s) => {
+        const price = calculatePrice({ ...config, size: s.id }, catalog);
         return (
           <OptionCard
             key={s.id}
@@ -199,6 +213,7 @@ export function StepSize() {
 }
 
 export function StepWrap() {
+  const catalog = useCatalog();
   const { wrap, ribbon } = useConfigurator((s) => s.config);
   const update = useConfigurator((s) => s.update);
   const wrapHeading = useId();
@@ -208,7 +223,7 @@ export function StepWrap() {
       <div>
         <SubHeading id={wrapHeading}>Papel o caja</SubHeading>
         <div role="group" aria-labelledby={wrapHeading} className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {WRAPS.map((w) => (
+          {catalog.wraps.map((w) => (
             <OptionCard key={w.id} selected={wrap === w.id} onClick={() => update({ wrap: w.id })} className="flex flex-col gap-3 p-3 pb-4">
               <span
                 aria-hidden="true"
@@ -256,6 +271,7 @@ export function StepWrap() {
 }
 
 export function StepCard() {
+  const catalog = useCatalog();
   const { cardDesign, font, message, anonymous, extras, occasion } = useConfigurator((s) => s.config);
   const update = useConfigurator((s) => s.update);
   const toggleExtra = useConfigurator((s) => s.toggleExtra);
@@ -267,7 +283,7 @@ export function StepCard() {
         <div>
           <SubHeading id={`${ids}-diseno`}>Diseño de tarjeta</SubHeading>
           <div role="group" aria-labelledby={`${ids}-diseno`} className="mt-3 flex flex-wrap gap-2">
-            {CARD_DESIGNS.map((c) => (
+            {catalog.cards.map((c) => (
               <Chip key={c.id} selected={cardDesign === c.id} onClick={() => update({ cardDesign: c.id })}>
                 {c.label}
                 <span className={cn("text-[12px]", cardDesign === c.id ? "text-marfil/80" : "text-gris-texto")}>
@@ -333,7 +349,7 @@ export function StepCard() {
       <div>
         <SubHeading id={`${ids}-regalo`}>Completá el regalo</SubHeading>
         <div role="group" aria-labelledby={`${ids}-regalo`} className="mt-3 grid gap-3 sm:grid-cols-3">
-          {EXTRAS.map((e) => (
+          {catalog.extras.map((e) => (
             <OptionCard key={e.id} selected={extras.includes(e.id)} onClick={() => toggleExtra(e.id)} className="flex flex-col justify-between gap-3 pr-10">
               <span className="font-serif text-[18px] leading-snug">{e.label}</span>
               <span className="tabular text-[14px] text-tinta">+{formatPrice(e.price)}</span>

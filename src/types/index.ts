@@ -60,6 +60,9 @@ export interface DeliveryInfo {
  */
 export type PaymentStatus = "sin_pagar" | "pendiente" | "aprobado" | "rechazado";
 
+/** Avance del pedido pago, que la florería actualiza desde /admin. */
+export type Fulfillment = "nuevo" | "preparando" | "foto" | "entregado";
+
 export interface Order {
   id: string;
   number: string;
@@ -71,6 +74,7 @@ export interface Order {
   items: CartItem[];
   delivery: DeliveryInfo & { dateISO: string };
   total: number;
+  fulfillment?: Fulfillment;
   payment: {
     status: PaymentStatus;
     methodLabel?: string;

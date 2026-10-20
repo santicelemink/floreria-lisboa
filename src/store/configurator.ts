@@ -12,6 +12,7 @@ import {
 } from "@/data/catalog";
 import { configsEqual, sanitizeConfig } from "@/lib/bouquet";
 import { safeStorage } from "@/lib/storage";
+import { getCatalog } from "@/lib/catalogData";
 
 export const STEP_COUNT = 6;
 
@@ -52,7 +53,8 @@ function randomHarmonious(current: BouquetConfig): BouquetConfig {
   for (let attempt = 0; attempt < 8; attempt++) {
     const palette = pick(PALETTES).id;
     const count = Math.random() < 0.65 ? 2 : 3;
-    const flowers = shuffle(FLOWERS.map((f) => f.id)).slice(0, count);
+    const available = FLOWERS.map((f) => f.id).filter((id) => getCatalog().flowerById[id]?.available !== false);
+    const flowers = shuffle(available.length ? available : FLOWERS.map((f) => f.id)).slice(0, Math.min(count, Math.max(1, available.length)));
     const roll = Math.random();
     const size = roll < 0.6 ? "clasico" : roll < 0.8 ? "abundante" : "petite";
     const harmony = HARMONY[palette];

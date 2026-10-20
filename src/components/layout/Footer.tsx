@@ -1,10 +1,11 @@
 import { Link } from "react-router-dom";
-import { whatsappLink } from "@/data/catalog";
+import { useCatalog, whatsappLink } from "@/lib/catalogData";
 
 const linkClass =
   "rounded-sm text-[15px] text-marfil/80 transition-colors duration-300 ease-atelier hover:text-marfil";
 
 export function Footer() {
+  useCatalog(); // los links de WhatsApp usan el número que se edita en /admin
   return (
     <footer className="bg-tinta text-marfil">
       <div className="container grid gap-12 py-16 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr] lg:py-20">
@@ -36,6 +37,7 @@ export function Footer() {
             <li><Link className={linkClass} to="/#preguntas">Envíos y retiro</Link></li>
             <li><Link className={linkClass} to="/producto/alfama#cuidados">Cuidado de las flores</Link></li>
             <li><Link className={linkClass} to="/#preguntas">Cambios</Link></li>
+            <li><Link className={linkClass} to="/admin">Acceso florería</Link></li>
             <li>
               <a className={linkClass} href={whatsappLink("Hola, tengo una consulta.")} target="_blank" rel="noreferrer">
                 Contacto

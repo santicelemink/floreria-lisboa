@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { BouquetConfig } from "@/types";
 import { PALETTE_BY_ID } from "@/data/catalog";
 import { PHOTOS, PHOTO_HEIGHT, PHOTO_WIDTH, photoSrc } from "@/data/photos";
@@ -13,6 +13,8 @@ interface BouquetPhotoProps {
   /** Solo para la imagen principal (hero): carga inmediata y prioridad alta. */
   priority?: boolean;
   alt?: string;
+  /** Foto subida desde /admin (reemplaza a la del sitio). */
+  src?: string;
   /** Si la foto no carga, se dibuja este ramo en SVG para que nunca quede un hueco. */
   fallback?: Pick<BouquetConfig, "palette" | "flowers" | "size" | "wrap" | "ribbon">;
 }
@@ -21,9 +23,11 @@ interface BouquetPhotoProps {
  * Foto de un ramo completo (4:5). Mientras carga se ve el color de la paleta;
  * después aparece con un fundido suave.
  */
-export function BouquetPhoto({ slug, className, imgClassName, priority = false, alt, fallback }: BouquetPhotoProps) {
+export function BouquetPhoto({ slug, className, imgClassName, priority = false, alt, fallback, src }: BouquetPhotoProps) {
   const photo = PHOTOS[slug];
   const [state, setState] = useState<"loading" | "loaded" | "error">("loading");
+  // Si cambia la foto (por ejemplo, desde el panel), vuelve a cargar.
+  useEffect(() => setState("loading"), [src]);
   const palette = photo ? PALETTE_BY_ID[photo.palette] : PALETTE_BY_ID.marfil;
 
   // Si la imagen ya estaba en caché, onLoad puede dispararse antes de hidratar: lo chequeamos al montar.
@@ -47,8 +51,8 @@ export function BouquetPhoto({ slug, className, imgClassName, priority = false, 
     <div className={cn("relative overflow-hidden", className)} style={{ background: tint(palette.colors[2], 0.35) }}>
       <img
         ref={ref}
-        src={photoSrc(slug)}
-        srcSet={`${photoSrc(slug)} 1x, ${photoSrc(slug, 2)} 2x`}
+        src={src ?? photoSrc(slug)}
+        srcSet={src ? undefined : `${photoSrc(slug)} 1x, ${photoSrc(slug, 2)} 2x`}
         width={PHOTO_WIDTH}
         height={PHOTO_HEIGHT}
         alt={alt ?? photo.alt}

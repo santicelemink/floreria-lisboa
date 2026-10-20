@@ -1,12 +1,12 @@
 import type { Order } from "@/types";
-import { ATELIER, whatsappLink } from "@/data/catalog";
+import { getCatalog, whatsappLink } from "./catalogData";
 import { formatPrice } from "./format";
 import { formatLongDate } from "./time";
 
 /** Texto de la entrega: "Envío a Palermo · sábado 18 de octubre · 15 a 18 h" */
 export function deliverySummary(order: Order) {
   const d = order.delivery;
-  const where = d.mode === "retiro" ? `Retiro en ${ATELIER.address}` : `Envío a ${d.barrio ?? "domicilio"}`;
+  const where = d.mode === "retiro" ? `Retiro en ${getCatalog().business.address}` : `Envío a ${d.barrio ?? "domicilio"}`;
   return `${where} · ${formatLongDate(d.dateISO)} · ${d.slot}`;
 }
 
