@@ -14,7 +14,7 @@ import { BouquetPreview } from "./BouquetPreview";
  *
  * Son 14 imágenes (ver README): las flores, el papel y el moño están fotografiados en blanco
  * y se tiñen acá con el color de la paleta, del envoltorio y de la cinta.
- * - Flores: cuadradas, la flor centrada ocupando ~90% del ancho.
+ * - Flores: dos capas de 600 × 1200 (cabeza y tallo), generadas con scripts/procesar_flores.py.
  * - Follaje: vertical 1:2, la base de la rama en el centro del borde inferior.
  * - Papel, tallos y caja: lienzo completo 5:6 alineado al ramo Clásico; se escalan según el tamaño.
  * - Moño: cuadrado, el nudo en el centro.
@@ -33,6 +33,12 @@ export interface BouquetComposerProps extends VisualConfig {
 const PAPER_ANCHOR_Y = layoutScene({ flowers: ["rosa"], size: "clasico", wrap: "seda-marfil" }).neckY;
 const BOX_ANCHOR_Y = layoutScene({ flowers: ["rosa"], size: "clasico", wrap: "caja" }).boxTop;
 const FADE_MS = 250;
+
+/**
+ * Lienzo de cada flor (lo genera scripts/procesar_flores.py): 600 × 1200, con el centro
+ * de la cabeza en (300, 264) y la cabeza de 360 px de ancho. El tallo baja desde ahí.
+ */
+const FLOWER_IMG = { w: 600, h: 1200, headX: 300, headY: 264, headW: 360 };
 const r2 = (v: number) => Math.round(v * 10) / 10;
 
 /** Lienzo completo escalado alrededor de un ancla: el cuello del ramo o el borde de la caja. */
@@ -58,6 +64,9 @@ function PhotoComposition({ config, scene, uid }: { config: VisualConfig; scene:
   const bowSize = 118 * s;
   const e = scene.boxHalf * 0.22;
   const boxBowY = scene.boxTop + 29.5 + e * 0.82;
+  // Punto hacia el que convergen los tallos, y hasta dónde se ven.
+  const tie = scene.isBox ? { x: CX, y: scene.boxTop + 140 * s } : { x: CX, y: scene.neckY + 30 * s };
+  const cutY = scene.isBox ? scene.boxTop + e + 30 : scene.neckY - 4;
 
   return (
     <>
@@ -69,6 +78,9 @@ function PhotoComposition({ config, scene, uid }: { config: VisualConfig; scene:
             <feDropShadow in="tinte" dx="0" dy="3" stdDeviation="3.5" floodColor="#4A3438" floodOpacity="0.22" />
           </filter>
         ))}
+        <clipPath id={`${uid}-corte`}>
+          <rect x="0" y="0" width={W} height={r2(cutY)} />
+        </clipPath>
         <filter id={`${uid}-papel`} colorInterpolationFilters="sRGB">
           <feColorMatrix type="matrix" values={tintMatrix(wrapColor, 0.06)} />
         </filter>
@@ -96,23 +108,33 @@ function PhotoComposition({ config, scene, uid }: { config: VisualConfig; scene:
         );
       })}
 
-      {/* 3. Flores, de atrás hacia adelante, con rotación leve estable, tinte y sombra */}
-      {scene.placed.map((p) => {
-        const d = p.r * 2.36;
-        const rotate = (p.spin - 0.5) * 24;
-        return (
-          <g key={`p${p.key}`} transform={`translate(${r2(p.x)} ${r2(p.y)}) rotate(${r2(rotate)})`}>
-            <image
-              href={composerPaths.flower(p.kind)}
-              x={r2(-d / 2)}
-              y={r2(-d / 2)}
-              width={r2(d)}
-              height={r2(d)}
-              filter={flowerFilter(p.colorIndex)}
-            />
-          </g>
-        );
-      })}
+      {/* 3. Flores, de atrás hacia adelante. Cada tallo apunta al atado (como en un ramo de verdad)
+             y se recorta a la altura del cuello: debajo se ven los tallos atados. */}
+      <g clipPath={`url(#${uid}-corte)`}>
+        {scene.placed.map((p) => {
+          const scale = (p.r * 2.2) / FLOWER_IMG.headW;
+          const w = FLOWER_IMG.w * scale;
+          const h = FLOWER_IMG.h * scale;
+          const x = -FLOWER_IMG.headX * scale;
+          const y = -FLOWER_IMG.headY * scale;
+          // Ángulo para que el tallo (hacia abajo en la imagen) apunte al punto de atado, con una leve variación estable.
+          const toward = Math.atan2(-(tie.x - p.x), tie.y - p.y) * (180 / Math.PI);
+          const rotate = toward + (p.spin - 0.5) * 10;
+          return (
+            <g key={`p${p.key}`} transform={`translate(${r2(p.x)} ${r2(p.y)}) rotate(${r2(rotate)})`}>
+              <image href={composerPaths.flowerStem(p.kind)} x={r2(x)} y={r2(y)} width={r2(w)} height={r2(h)} />
+              <image
+                href={composerPaths.flower(p.kind)}
+                x={r2(x)}
+                y={r2(y)}
+                width={r2(w)}
+                height={r2(h)}
+                filter={flowerFilter(p.colorIndex)}
+              />
+            </g>
+          );
+        })}
+      </g>
 
       {/* 4. Tallos y papel de adelante, o frente de la caja */}
       {scene.isBox ? (

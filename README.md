@@ -76,12 +76,7 @@ Mientras falte **cualquiera** de las imágenes de una combinación, ese ramo se 
 
 | Archivo | Medida | Cómo tiene que estar |
 |---|---|---|
-| `public/composer/flores/rosa.webp` | 600 × 600 o más | Rosa de jardín abierta, blanca. |
-| `public/composer/flores/peonia.webp` | 600 × 600 o más | Peonía bien abierta, blanca, con estambres dorados. |
-| `public/composer/flores/tulipan.webp` | 600 × 600 o más | Tulipán blanco en copa, a 45°. |
-| `public/composer/flores/ranunculo.webp` | 600 × 600 o más | Ranúnculo blanco con capas concéntricas y centro verdoso. |
-| `public/composer/flores/lisianthus.webp` | 600 × 600 o más | Lisianthus blanco abierto. |
-| `public/composer/flores/hortensia.webp` | 600 × 600 o más | Cabeza redonda de hortensia blanca. |
+| `public/composer/flores/{variedad}.webp` + `{variedad}-tallo.webp` | 600 × 1200, generadas | Una foto por variedad (rosa, peonia, tulipan, ranunculo, lisianthus, hortensia): flor **blanca con tallo**, de frente y levemente desde arriba (el mismo ángulo que las fotos de ramos), sobre fondo gris liso. `scripts/procesar_flores.py` la recorta y la separa en cabeza (se tiñe) y tallo (queda verde). |
 | `public/composer/follaje/eucalipto-1.webp` a `eucalipto-3.webp` | 300 × 600 (1:2) | Tres ramas de eucalipto distintas, verticales, con la base del tallo en el centro del borde inferior. En su color real. |
 | `public/composer/envoltorios/papel-atras.webp` | 1000 × 1200 (5:6) | Parte trasera del papel (la que queda detrás de las flores), blanca o marfil. |
 | `public/composer/envoltorios/papel-adelante.webp` | 1000 × 1200 (5:6) | Frente del cono de papel, blanco o marfil, sin tallos. |
@@ -89,7 +84,12 @@ Mientras falte **cualquiera** de las imágenes de una combinación, ese ramo se 
 | `public/composer/caja/caja-sombrerera.webp` | 1000 × 1200 (5:6) | Frente de la caja sombrerera lavanda pálido con “Lisboa”, sin tapa, sin cinta. En su color real. |
 | `public/composer/cintas/mono.webp` | 400 × 400 | Moño de satén blanco visto de frente, el nudo en el centro. |
 
-Flores: la flor centrada ocupando ~90% del ancho, vista desde arriba en leve ángulo, sin tallo ni sombra (la sombra la agrega el sitio).
+Flores: el compositor ubica cada cabeza con el algoritmo del ramo y hace que el tallo apunte al atado; los tallos se recortan a la altura del cuello del papel y debajo se ve `tallos.webp`. Para procesar fotos nuevas:
+
+```bash
+pip install "rembg[cpu]" pillow numpy
+python scripts/procesar_flores.py rosa.png tulipan.png --salida public/composer/flores
+```
 Papel, tallos y caja: lienzo completo alineado al ramo Clásico, con el cuello del ramo (donde va el moño) en **(500, 870)**;
 la caja con el centro del borde de la boca en **(500, 560)**. No hace falta que queden exactos: se ajustan al cargarlos.
 Petite y Abundante usan las mismas imágenes: el sitio las escala.

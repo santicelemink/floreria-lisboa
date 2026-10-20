@@ -1,13 +1,17 @@
 import type { BouquetConfig, FlowerId } from "@/types";
 import { FLOWERS, WRAP_BY_ID } from "@/data/catalog";
 
-/* ---------- Assets del compositor (carpeta /public/composer): 14 imágenes ---------- */
+/* ---------- Assets del compositor (carpeta /public/composer) ----------
+ * 14 fotos de origen. Cada flor se procesa con scripts/procesar_flores.py en dos capas
+ * alineadas (cabeza y tallo), así que en la carpeta quedan 20 archivos. */
 
 export const FOLIAGE_VARIANTS = [1, 2, 3] as const;
 
 export const composerPaths = {
-  /** Una flor por variedad, fotografiada en blanco: el color lo pone el sitio. */
+  /** Cabeza de la flor, en blanco: el color lo pone el sitio. */
   flower: (flower: FlowerId) => `/composer/flores/${flower}.webp`,
+  /** Tallo y hojas de la misma flor, en su verde natural (mismo lienzo que la cabeza). */
+  flowerStem: (flower: FlowerId) => `/composer/flores/${flower}-tallo.webp`,
   foliage: (n: number) => `/composer/follaje/eucalipto-${n}.webp`,
   /** Papel blanco o marfil: se tiñe con el color de cada envoltorio. */
   paperBack: () => `/composer/envoltorios/papel-atras.webp`,
@@ -24,7 +28,10 @@ type VisualConfig = Pick<BouquetConfig, "flowers" | "wrap">;
 /** Imágenes que hacen falta para componer un ramo. */
 export function assetsForConfig({ flowers, wrap }: VisualConfig): string[] {
   const urls = new Set<string>();
-  flowers.forEach((f) => urls.add(composerPaths.flower(f)));
+  flowers.forEach((f) => {
+    urls.add(composerPaths.flower(f));
+    urls.add(composerPaths.flowerStem(f));
+  });
   FOLIAGE_VARIANTS.forEach((n) => urls.add(composerPaths.foliage(n)));
   if (WRAP_BY_ID[wrap].kind === "box") {
     urls.add(composerPaths.box());
@@ -40,7 +47,7 @@ export function assetsForConfig({ flowers, wrap }: VisualConfig): string[] {
 /** Las 14 imágenes del compositor, con su descripción, para /dev/composer y la precarga. */
 export function allComposerAssets() {
   return {
-    flowers: FLOWERS.map((f) => ({ flower: f, url: composerPaths.flower(f.id) })),
+    flowers: FLOWERS.map((f) => ({ flower: f, url: composerPaths.flower(f.id), stemUrl: composerPaths.flowerStem(f.id) })),
     foliage: FOLIAGE_VARIANTS.map((n) => composerPaths.foliage(n)),
     wraps: [
       { label: "papel-atras.webp", url: composerPaths.paperBack() },
@@ -54,7 +61,7 @@ export function allComposerAssets() {
 
 export function allComposerUrls() {
   const a = allComposerAssets();
-  return [...a.flowers.map((f) => f.url), ...a.foliage, ...a.wraps.map((w) => w.url), a.box, a.ribbon];
+  return [...a.flowers.flatMap((f) => [f.url, f.stemUrl]), ...a.foliage, ...a.wraps.map((w) => w.url), a.box, a.ribbon];
 }
 
 /* ---------- Carga con caché: cada imagen se pide una sola vez ---------- */

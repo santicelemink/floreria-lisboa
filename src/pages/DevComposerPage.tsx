@@ -31,13 +31,25 @@ function useStatuses(urls: string[]) {
 const checker =
   "bg-[conic-gradient(#EBE3DC_25%,#FFFFFF_0_50%,#EBE3DC_0_75%,#FFFFFF_0)] bg-[length:14px_14px]";
 
-function AssetCell({ url, label, status, wide = false }: { url: string; label: string; status?: AssetStatus; wide?: boolean }) {
+function AssetCell({
+  url,
+  label,
+  status,
+  wide = false,
+  tall = false,
+}: {
+  url: string;
+  label: string;
+  status?: AssetStatus;
+  wide?: boolean;
+  tall?: boolean;
+}) {
   return (
     <figure className="min-w-0">
       <div
         className={cn(
           "relative flex items-center justify-center overflow-hidden rounded-[12px] border",
-          wide ? "aspect-[5/6]" : "aspect-square",
+          tall ? "aspect-[1/2]" : wide ? "aspect-[5/6]" : "aspect-square",
           status === "ok" ? `border-linea ${checker}` : "border-dashed border-error/60 bg-papel",
         )}
       >
@@ -51,22 +63,36 @@ function AssetCell({ url, label, status, wide = false }: { url: string; label: s
 }
 
 /** La imagen teñida con el mismo filtro que usa el compositor. */
-function TintedCell({ url, hex, status, wide = false }: { url: string; hex: string; status?: AssetStatus; wide?: boolean }) {
+function TintedCell({
+  url,
+  hex,
+  status,
+  wide = false,
+  stemUrl,
+}: {
+  url: string;
+  hex: string;
+  status?: AssetStatus;
+  wide?: boolean;
+  /** Para las flores: el tallo va debajo, sin teñir. */
+  stemUrl?: string;
+}) {
   const id = `t${hex.slice(1)}${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
   return (
     <div
       className={cn(
         "flex items-center justify-center overflow-hidden rounded-[12px] border",
-        wide ? "aspect-[5/6]" : "aspect-square",
+        stemUrl ? "aspect-[1/2]" : wide ? "aspect-[5/6]" : "aspect-square",
         status === "ok" ? `border-linea ${checker}` : "border-dashed border-linea bg-papel",
       )}
     >
       {status === "ok" ? (
-        <svg viewBox="0 0 100 100" className="h-full w-full" aria-hidden="true">
+        <svg viewBox={stemUrl ? "0 0 100 200" : "0 0 100 100"} className="h-full w-full" aria-hidden="true">
           <filter id={id} colorInterpolationFilters="sRGB">
             <feColorMatrix type="matrix" values={tintMatrix(hex)} />
           </filter>
-          <image href={url} x="0" y="0" width="100" height="100" filter={`url(#${id})`} preserveAspectRatio="xMidYMid meet" />
+          {stemUrl && <image href={stemUrl} x="0" y="0" width="100" height="200" />}
+          <image href={url} x="0" y="0" width="100" height={stemUrl ? 200 : 100} filter={`url(#${id})`} preserveAspectRatio="xMidYMid meet" />
         </svg>
       ) : (
         <span className="h-6 w-6 rounded-full border border-linea" style={{ background: hex }} />
@@ -152,7 +178,7 @@ export function DevComposerPage() {
 
       <Section
         title="Flores"
-        note="Una por variedad, fotografiada en blanco. 600 × 600 o más, fondo transparente, la flor centrada ocupando ~90% del ancho, vista desde arriba en leve ángulo. A la derecha, cómo queda teñida en cada color."
+        note="Una foto por variedad: flor blanca con tallo, de frente y levemente desde arriba, sobre fondo gris liso. scripts/procesar_flores.py la recorta y la separa en cabeza (se tiñe) y tallo (queda verde), en un lienzo de 600 × 1200. A la derecha, cómo queda en cada color."
       >
         <div className="overflow-x-auto pb-2">
           <table className="w-full min-w-[1040px] border-separate border-spacing-2 text-left">
@@ -168,15 +194,23 @@ export function DevComposerPage() {
               </tr>
             </thead>
             <tbody>
-              {assets.flowers.map(({ flower, url }) => (
+              {assets.flowers.map(({ flower, url, stemUrl }) => (
                 <tr key={flower.id}>
                   <th className="align-top font-serif text-[18px] font-normal">{flower.label}</th>
                   <td className="align-top">
-                    <AssetCell url={url} label={`flores/${flower.id}.webp`} status={statuses[url]} />
+                    <AssetCell url={url} label={`flores/${flower.id}.webp`} status={statuses[url]} tall />
+                    <p className={cn("mt-1 text-[12px]", statuses[stemUrl] === "error" ? "text-error" : "text-gris-texto")}>
+                      {statuses[stemUrl] === "error" ? "Falta el tallo" : `+ ${flower.id}-tallo.webp`}
+                    </p>
                   </td>
                   {COMPOSER_COLORS.map((c) => (
                     <td key={c} className="align-top">
-                      <TintedCell url={url} hex={COMPOSER_COLOR_HEX[c]} status={statuses[url]} />
+                      <TintedCell
+                        url={url}
+                        stemUrl={stemUrl}
+                        hex={COMPOSER_COLOR_HEX[c]}
+                        status={statuses[url] === "ok" && statuses[stemUrl] === "ok" ? "ok" : statuses[url]}
+                      />
                     </td>
                   ))}
                 </tr>
